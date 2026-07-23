@@ -19,6 +19,24 @@ export type SupportedCurrency = "BRL" | "USD" | "EUR";
 export type TransactionType = "income" | "expense";
 export type TransactionStatus = "pending" | "completed";
 export type TransferDirection = "outflow" | "inflow";
+export type CreditCardBrand =
+  | "visa"
+  | "mastercard"
+  | "elo"
+  | "amex"
+  | "hipercard"
+  | "other";
+export type CreditCardPurchaseStatus = "active" | "cancelled";
+export type CreditCardInstallmentStatus =
+  | "pending"
+  | "invoiced"
+  | "paid"
+  | "cancelled";
+export type CreditCardInvoiceStatus = "open" | "closed" | "paid" | "overdue";
+export type TransactionOriginType =
+  | "manual"
+  | "credit_card_invoice_payment"
+  | "system";
 
 export type Profile = {
   id: string;
@@ -59,7 +77,7 @@ export type Transaction = {
   id: string;
   user_id: string;
   account_id: string;
-  category_id: string;
+  category_id: string | null;
   transaction_type: TransactionType;
   description: string;
   amount_minor: number;
@@ -67,8 +85,81 @@ export type Transaction = {
   status: TransactionStatus;
   notes: string | null;
   is_active: boolean;
+  origin_type: TransactionOriginType;
+  origin_id: string | null;
+  credit_card_invoice_id: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type CreditCard = {
+  id: string;
+  user_id: string;
+  name: string;
+  issuer: string;
+  brand: CreditCardBrand;
+  last_four_digits: string;
+  credit_limit: number;
+  closing_day: number;
+  due_day: number;
+  currency: SupportedCurrency;
+  linked_account_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreditCardPurchase = {
+  id: string;
+  user_id: string;
+  credit_card_id: string;
+  category_id: string;
+  description: string;
+  total_amount: number;
+  purchase_date: string;
+  installment_count: number;
+  status: CreditCardPurchaseStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreditCardInvoice = {
+  id: string;
+  user_id: string;
+  credit_card_id: string;
+  reference_month: string;
+  closing_date: string;
+  due_date: string;
+  status: CreditCardInvoiceStatus;
+  total_amount: number;
+  paid_amount: number;
+  closed_at: string | null;
+  paid_at: string | null;
+  payment_account_id: string | null;
+  payment_transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreditCardInstallment = {
+  id: string;
+  user_id: string;
+  purchase_id: string;
+  credit_card_id: string;
+  invoice_id: string;
+  installment_number: number;
+  installment_count: number;
+  amount: number;
+  competence_date: string;
+  status: CreditCardInstallmentStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreditCardSummary = CreditCard & {
+  used_limit: number;
+  available_limit: number;
 };
 
 export type Transfer = {
@@ -180,7 +271,15 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<
-          Omit<Transaction, "id" | "user_id" | "created_at">
+          Omit<
+            Transaction,
+            | "id"
+            | "user_id"
+            | "created_at"
+            | "origin_type"
+            | "origin_id"
+            | "credit_card_invoice_id"
+          >
         >;
         Relationships: [];
       };
@@ -196,10 +295,55 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      credit_cards: {
+        Row: CreditCard;
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          issuer: string;
+          brand: CreditCardBrand;
+          last_four_digits: string;
+          credit_limit?: number;
+          closing_day: number;
+          due_day: number;
+          currency?: SupportedCurrency;
+          linked_account_id?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Omit<CreditCard, "id" | "user_id" | "created_at" | "updated_at">
+        >;
+        Relationships: [];
+      };
+      credit_card_purchases: {
+        Row: CreditCardPurchase;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      credit_card_invoices: {
+        Row: CreditCardInvoice;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      credit_card_installments: {
+        Row: CreditCardInstallment;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       account_balances: {
         Row: AccountBalance;
+        Relationships: [];
+      };
+      credit_card_summaries: {
+        Row: CreditCardSummary;
         Relationships: [];
       };
     };
@@ -240,6 +384,50 @@ export type Database = {
         };
         Returns: boolean;
       };
+      create_credit_card_purchase: {
+        Args: {
+          target_credit_card_id: string;
+          target_category_id: string;
+          purchase_description: string;
+          purchase_total_amount: number;
+          target_purchase_date: string;
+          target_installment_count: number;
+          purchase_notes?: string | null;
+        };
+        Returns: string;
+      };
+      update_credit_card_purchase: {
+        Args: {
+          target_purchase_id: string;
+          target_category_id: string;
+          purchase_description: string;
+          purchase_total_amount: number;
+          target_purchase_date: string;
+          target_installment_count: number;
+          purchase_notes?: string | null;
+        };
+        Returns: boolean;
+      };
+      cancel_credit_card_purchase: {
+        Args: { target_purchase_id: string };
+        Returns: boolean;
+      };
+      close_credit_card_invoice: {
+        Args: { target_invoice_id: string };
+        Returns: boolean;
+      };
+      pay_credit_card_invoice: {
+        Args: {
+          target_invoice_id: string;
+          target_account_id: string;
+          target_payment_date: string;
+        };
+        Returns: string;
+      };
+      reverse_credit_card_invoice_payment: {
+        Args: { target_invoice_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       account_type: AccountType;
@@ -247,6 +435,11 @@ export type Database = {
       transaction_kind: "income" | "expense" | "transfer";
       transaction_status: TransactionStatus;
       transfer_direction: TransferDirection;
+      credit_card_brand: CreditCardBrand;
+      credit_card_purchase_status: CreditCardPurchaseStatus;
+      credit_card_installment_status: CreditCardInstallmentStatus;
+      credit_card_invoice_status: CreditCardInvoiceStatus;
+      transaction_origin_type: TransactionOriginType;
     };
     CompositeTypes: Record<string, never>;
   };

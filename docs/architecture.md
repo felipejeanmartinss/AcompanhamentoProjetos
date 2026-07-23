@@ -32,3 +32,11 @@ As rotas `/transactions` e `/transfers` seguem o mesmo fluxo Server Component �
 Receitas e despesas são persistidas em `transactions`. Transferências usam uma tabela canônica separada e duas entradas vinculadas. Mutações de transferência são expostas apenas por RPCs `security definer` com `search_path` vazio; assim, a origem e o destino são criados, editados e inativados atomicamente.
 
 O saldo não é atualizado por incrementos mutáveis. A view `account_balances`, executada com as políticas do usuário chamador, calcula o valor atual a partir do saldo inicial e apenas de movimentações ativas e realizadas. Essa decisão elimina rotinas de compensação ao editar lançamentos e reduz o risco de divergência.
+
+## Cartões e faturas — Sprint 4
+
+Cartões são lidos e editados por Server Components, Server Actions e serviços exclusivos do servidor. Compras, parcelas, fechamento, pagamento e estorno não aceitam escrita direta do cliente: RPCs `security definer`, com `search_path` vazio e validação de `auth.uid()`, executam cada operação crítica em uma única transação PostgreSQL.
+
+O consumo é reconhecido na compra e categorizado como despesa, mas não movimenta uma conta. O pagamento integral da fatura cria uma transação técnica realizada, vinculada à fatura por `origin_type` e chaves estrangeiras. Essa transação representa a liquidação financeira e é protegida contra edição manual. A view `credit_card_summaries`, com `security_invoker`, deriva o limite utilizado de todas as parcelas ativas ainda não pagas.
+
+Valores de cartão também usam unidades menores inteiras. As colunas `numeric(16,0)` preservam exatidão no PostgreSQL e permanecem dentro do intervalo inteiro seguro adotado pelo TypeScript. Consulte `docs/credit-cards.md`.

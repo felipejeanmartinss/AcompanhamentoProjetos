@@ -5,9 +5,10 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
   const navigation = [
     { href: "/dashboard", label: "Início" },
     { href: "/accounts", label: "Contas" },
-    { href: "/transactions", label: "Lançamentos" },
+    { href: "/transactions", label: "Movimentações" },
     { href: "/transfers", label: "Transferências" },
     { href: "/categories", label: "Categorias" },
+    { href: "/credit-cards", label: "Cartões" },
     { href: "/settings/profile", label: "Perfil" },
   ];
 

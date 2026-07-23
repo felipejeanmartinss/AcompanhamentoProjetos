@@ -26,6 +26,8 @@ export function isPrivatePath(pathname: string) {
     pathname.startsWith("/transactions/") ||
     pathname === "/transfers" ||
     pathname.startsWith("/transfers/") ||
+    pathname === "/credit-cards" ||
+    pathname.startsWith("/credit-cards/") ||
     pathname === "/settings" ||
     pathname.startsWith("/settings/")
   );

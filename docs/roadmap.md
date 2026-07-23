@@ -16,6 +16,10 @@ Contas financeiras básicas, saldo inicial e data de referência, categorias pad
 
 Receitas, despesas, estados Previsto/Realizado, filtros, edição e inativação lógica, transferências atômicas entre contas da mesma moeda e saldo atual calculado.
 
+## Sprint 4 — Cartões de crédito
+
+Cartões, compras à vista ou parceladas, competência por fechamento, faturas, pagamento integral, estorno seguro e limites derivados.
+
 ## Próximas sprints
 
-Cartões, faturas, parcelamentos, recorrências, orçamentos, patrimônio, investimentos, importações e relatórios serão planejados separadamente e não pertencem à Sprint 3.
+Recorrências, orçamentos, patrimônio, investimentos, importações, relatórios e recursos avançados de cartão serão planejados separadamente e não pertencem à Sprint 4.

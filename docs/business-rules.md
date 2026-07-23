@@ -39,6 +39,18 @@
 - Lançamentos e transferências não são excluídos fisicamente pela interface.
 - O saldo atual é o saldo inicial, mais receitas realizadas ativas, menos despesas realizadas ativas, mais transferências recebidas realizadas ativas e menos transferências enviadas realizadas ativas.
 
+## Cartões de crédito — Sprint 4
+
+- Compra de cartão é despesa de consumo e exige categoria de Despesa ativa do mesmo usuário.
+- Compra não altera saldo de conta. A conta só recebe uma saída técnica quando a fatura integral é paga.
+- Valores são positivos e exatos em unidades menores; parcelas nunca possuem valor zero. Eventual resto da divisão fica na última parcela.
+- Compra realizada até o dia de fechamento pertence à competência atual; após esse dia, pertence à seguinte. Dias inexistentes em um mês são limitados ao último dia real.
+- O limite utilizado soma todas as parcelas ativas pendentes ou faturadas, inclusive futuras. O limite disponível é o limite total menos esse valor e pode ficar negativo.
+- Fechamento é idempotente. Uma fatura fechada ou paga impede mudanças estruturais nas compras que a compõem.
+- Pagamento exige conta ativa, do mesmo usuário e na mesma moeda do cartão. A transação técnica é realizada, não possui categoria e não pode ser editada pela interface de movimentações.
+- Estorno de pagamento inativa a transação técnica e devolve fatura e parcelas ao estado fechado/faturado na mesma transação SQL.
+- Cartões e compras não são excluídos fisicamente pela interface.
+
 ## Regras financeiras futuras
 
-Cartões, faturas, parcelamentos, recorrências, orçamentos, investimentos e conversão monetária serão definidos em sprints posteriores.
+Recorrências, cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, orçamentos e investimentos serão definidos em sprints posteriores.

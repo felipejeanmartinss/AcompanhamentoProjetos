@@ -27,7 +27,7 @@ export type TransactionFilters = {
 };
 
 const transactionColumns =
-  "id, user_id, account_id, category_id, transaction_type, description, amount_minor, transaction_date, status, notes, is_active, created_at, updated_at";
+  "id, user_id, account_id, category_id, transaction_type, description, amount_minor, transaction_date, status, notes, is_active, origin_type, origin_id, credit_card_invoice_id, created_at, updated_at";
 
 export async function listCurrentUserTransactions(
   filters: TransactionFilters,
@@ -128,6 +128,7 @@ export async function getCurrentUserTransaction(id: string) {
     .select(transactionColumns)
     .eq("user_id", user.id)
     .eq("id", id)
+    .eq("origin_type", "manual")
     .maybeSingle();
 
   return { transaction: data, hasError: Boolean(error) };
@@ -184,6 +185,7 @@ export async function updateCurrentUserTransaction(
     })
     .eq("user_id", user.id)
     .eq("id", id)
+    .eq("origin_type", "manual")
     .select("id")
     .maybeSingle();
 
@@ -202,6 +204,7 @@ export async function setCurrentUserTransactionActive(
     .update({ is_active: active })
     .eq("user_id", user.id)
     .eq("id", id)
+    .eq("origin_type", "manual")
     .select("id")
     .maybeSingle();
 

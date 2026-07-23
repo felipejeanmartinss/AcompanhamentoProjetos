@@ -32,6 +32,14 @@ O cliente não recebe permissão de escrita direta nessas tabelas. As funções 
 
 `public.account_balances` é uma view com `security_invoker`. Ela deriva `current_balance_minor` do saldo inicial, dos lançamentos e das movimentações de transferência que estejam ativos e realizados. O saldo atual não é duplicado em uma coluna mutável.
 
+## Cartões, compras, parcelas e faturas
+
+`public.credit_cards` guarda configuração, limite e conta de pagamento opcional. `public.credit_card_purchases` registra o consumo categorizado. `public.credit_card_installments` materializa a divisão exata da compra e vincula cada parcela a uma `public.credit_card_invoices`.
+
+O cliente só escreve diretamente na configuração do cartão. Compras e faturas são mutadas por RPCs atômicas. A fatura tem competência única por cartão, datas de fechamento e vencimento, total consolidado e referências ao pagamento. A view `public.credit_card_summaries` deriva limites utilizado e disponível sem manter acumuladores editáveis.
+
+`public.transactions.origin_type` distingue lançamentos manuais da saída técnica de pagamento de fatura. Pagamentos possuem `category_id` nulo, vínculo obrigatório com a fatura e não podem ser alterados pelas políticas de atualização manual.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;
@@ -39,6 +47,8 @@ O cliente não recebe permissão de escrita direta nessas tabelas. As funções 
 - `opening_balance_date` é obrigatória;
 - nomes de categorias são únicos por usuário, natureza e contexto;
 - valores de lançamentos e transferências são positivos e limitados ao intervalo inteiro seguro do TypeScript;
+- valores de cartão usam `numeric(16,0)`, sem escala decimal, no mesmo intervalo seguro;
+- parcelas somam exatamente o total da compra e nenhuma parcela pode ser zero;
 - cada transferência possui no máximo uma entrada e uma saída, garantidas por restrição única;
 - triggers mantêm `updated_at`;
 - chaves estrangeiras para o usuário usam exclusão em cascata, executada apenas quando o usuário é removido pelo fluxo administrativo de identidade.

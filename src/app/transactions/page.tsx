@@ -225,7 +225,11 @@ export default async function TransactionsPage({
       <section className="grid gap-3">
         {transactions.map((transaction) => {
           const account = accountById.get(transaction.account_id);
-          const category = categoryById.get(transaction.category_id);
+          const category = transaction.category_id
+            ? categoryById.get(transaction.category_id)
+            : undefined;
+          const isTechnical =
+            transaction.origin_type === "credit_card_invoice_payment";
           const income = transaction.transaction_type === "income";
           return (
             <article
@@ -260,7 +264,10 @@ export default async function TransactionsPage({
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
                     {account?.name ?? "Conta indisponível"} ·{" "}
-                    {category?.name ?? "Categoria indisponível"} ·{" "}
+                    {isTechnical
+                      ? "Liquidação de fatura"
+                      : category?.name ?? "Categoria indisponível"}{" "}
+                    ·{" "}
                     {formatDate(transaction.transaction_date)}
                   </p>
                 </div>
@@ -278,23 +285,31 @@ export default async function TransactionsPage({
                 </p>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                <Link
-                  href={`/transactions/${transaction.id}/edit`}
-                  className="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Editar
-                </Link>
-                <form action={toggleTransactionActivity}>
-                  <input type="hidden" name="id" value={transaction.id} />
-                  <input
-                    type="hidden"
-                    name="active"
-                    value={transaction.is_active ? "false" : "true"}
-                  />
-                  <button className="min-h-10 rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">
-                    {transaction.is_active ? "Inativar" : "Reativar"}
-                  </button>
-                </form>
+                {isTechnical ? (
+                  <span className="text-sm font-semibold text-slate-500">
+                    Gerenciado pela fatura
+                  </span>
+                ) : (
+                  <>
+                    <Link
+                      href={`/transactions/${transaction.id}/edit`}
+                      className="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Editar
+                    </Link>
+                    <form action={toggleTransactionActivity}>
+                      <input type="hidden" name="id" value={transaction.id} />
+                      <input
+                        type="hidden"
+                        name="active"
+                        value={transaction.is_active ? "false" : "true"}
+                      />
+                      <button className="min-h-10 rounded-lg px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+                        {transaction.is_active ? "Inativar" : "Reativar"}
+                      </button>
+                    </form>
+                  </>
+                )}
               </div>
             </article>
           );

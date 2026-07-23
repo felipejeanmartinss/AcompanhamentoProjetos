@@ -20,7 +20,10 @@ export default async function EditTransactionPage({
   const { transaction, hasError } = await getCurrentUserTransaction(
     parsedId.data,
   );
-  if (hasError || !transaction) notFound();
+  if (hasError || !transaction || transaction.origin_type !== "manual") {
+    notFound();
+  }
+  if (!transaction.category_id) notFound();
   const options = await getTransactionFormOptions({
     accountId: transaction.account_id,
     categoryId: transaction.category_id,

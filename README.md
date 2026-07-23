@@ -1,6 +1,6 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A Sprint 3 acrescenta receitas, despesas, transferências atômicas e saldos calculados à fundação segura de contas e categorias.
+Progressive Web App de gestão financeira pessoal. A Sprint 4 acrescenta cartões, compras parceladas, faturas e pagamentos seguros à fundação financeira existente.
 
 ## Stack
 
@@ -20,16 +20,17 @@ Progressive Web App de gestão financeira pessoal. A Sprint 3 acrescenta receita
 
 Configure no Supabase Auth as URLs permitidas `http://localhost:3000/**` e as URLs equivalentes da Vercel. Consulte [docs/local-setup.md](docs/local-setup.md).
 
-## Sprint 3
+## Sprint 4
 
-- receitas e despesas previstas ou realizadas;
-- filtros por tipo, status, conta, categoria, período e atividade;
-- edição, inativação e reativação sem exclusão física;
-- transferências entre contas da mesma moeda, sempre com saída e entrada atômicas;
-- saldo atual derivado do saldo inicial e das movimentações ativas realizadas;
-- RLS, validações no banco e permissões mínimas para isolamento entre usuários.
+- cadastro, edição, inativação e reativação de cartões;
+- compras à vista ou parceladas, com divisão exata em centavos;
+- competência automática pelo dia de fechamento e ajuste para meses curtos;
+- faturas abertas, fechadas, pagas ou vencidas;
+- pagamento integral com movimentação técnica na conta, sem duplicar consumo;
+- limite utilizado e disponível derivados das parcelas não pagas;
+- operações críticas atômicas, RLS e isolamento por usuário.
 
-Cartões, faturas, parcelamentos, recorrências, orçamentos, investimentos e dashboard financeiro completo permanecem fora desta entrega.
+Recorrências, cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial, orçamentos, investimentos e dashboard financeiro completo permanecem fora desta entrega. Veja [docs/credit-cards.md](docs/credit-cards.md).
 
 ## Qualidade
 
