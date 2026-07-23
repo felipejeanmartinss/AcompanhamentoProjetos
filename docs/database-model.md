@@ -12,9 +12,9 @@ A função `handle_new_user` é `security definer`, usa `search_path` vazio, cri
 
 ## Categorias
 
-`public.categories` contém proprietário, nome, natureza, contexto, indicador de categoria padrão, arquivamento e timestamps. A função `seed_default_categories` cria a taxonomia inicial de cada usuário e também atende usuários existentes durante a migration.
+`public.categories` contém proprietário, nome, natureza, contexto, indicador de origem na taxonomia inicial, arquivamento e timestamps. A função `seed_default_categories` cria as sugestões iniciais de cada usuário e também atende usuários existentes durante a migration.
 
-RLS permite leitura das categorias do proprietário. Inserção e atualização exigem `is_system = false`, e os privilégios por coluna impedem o cliente de transformar uma categoria personalizada em padrão. Não existe política de exclusão.
+RLS permite leitura e atualização das categorias pelo proprietário. O campo `is_system` é mantido somente como informação de origem e não bloqueia alterações. Os privilégios por coluna impedem o cliente de alterar esse indicador, e não existe política de exclusão.
 
 ## Lançamentos
 

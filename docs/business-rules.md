@@ -20,8 +20,8 @@
 - As moedas suportadas inicialmente são BRL, USD e EUR. A moeda preferencial do perfil apenas sugere o valor inicial de novas contas; ela não converte contas existentes.
 - Contas não são excluídas pela interface: podem ser inativadas e reativadas.
 - Categorias separam natureza (Receita ou Despesa) e contexto (Pessoal ou Profissional).
-- Categorias padrão são criadas automaticamente para cada usuário, partem de uma taxonomia inspirada na orientação AUVP adaptada aos contextos do MeuMoney e são imutáveis pelo cliente.
-- Categorias personalizadas podem ser criadas, editadas, inativadas e reativadas pelo proprietário.
+- Categorias iniciais são criadas automaticamente para cada usuário e partem de uma taxonomia inspirada na orientação AUVP adaptada aos contextos do MeuMoney.
+- A taxonomia inicial é somente uma sugestão: todas as categorias pertencem ao usuário e podem ser editadas, inativadas e reativadas pelo proprietário.
 - A combinação nome, natureza e contexto é única por usuário.
 - O saldo inicial permanece como ponto de partida imutável do cálculo histórico, embora possa ser corrigido pelo usuário na edição da conta.
 

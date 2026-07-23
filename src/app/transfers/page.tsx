@@ -2,13 +2,16 @@ import Link from "next/link";
 import { toggleTransferActivity } from "@/app/actions/transfers";
 import { inputClass } from "@/components/forms/form-controls";
 import { CURRENCY_LOCALES } from "@/domain/currencies";
-import { formatMoney } from "@/domain/money";
 import {
   TRANSACTION_STATUSES,
   TRANSACTION_STATUS_LABELS,
 } from "@/domain/transactions";
 import { transferFiltersSchema } from "@/domain/transfers";
 import { listCurrentUserTransfers } from "@/services/finance/transfers-service";
+import {
+  formatFinancialAmount,
+  formatFinancialDate,
+} from "@/utils/financial-formatters";
 
 export const metadata = { title: "Transferências" };
 
@@ -18,12 +21,6 @@ const messages: Record<string, string> = {
   "status-updated": "Status da transferência atualizado com sucesso.",
   "status-error": "Não foi possível alterar o status da transferência.",
 };
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR").format(
-    new Date(`${value}T12:00:00`),
-  );
-}
 
 export default async function TransfersPage({
   searchParams,
@@ -221,11 +218,11 @@ export default async function TransfersPage({
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
                     {transfer.description || "Transferência entre contas"} ·{" "}
-                    {formatDate(transfer.transaction_date)}
+                    {formatFinancialDate(transfer.transaction_date)}
                   </p>
                 </div>
                 <p className="shrink-0 text-xl font-extrabold text-blue-800">
-                  {formatMoney(
+                  {formatFinancialAmount(
                     transfer.amount_minor,
                     transfer.currency,
                     CURRENCY_LOCALES[transfer.currency],

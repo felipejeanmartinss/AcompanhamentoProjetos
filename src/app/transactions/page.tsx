@@ -2,7 +2,6 @@ import Link from "next/link";
 import { toggleTransactionActivity } from "@/app/actions/transactions";
 import { inputClass } from "@/components/forms/form-controls";
 import { CURRENCY_LOCALES } from "@/domain/currencies";
-import { formatMoney } from "@/domain/money";
 import {
   TRANSACTION_STATUSES,
   TRANSACTION_STATUS_LABELS,
@@ -11,6 +10,10 @@ import {
   transactionFiltersSchema,
 } from "@/domain/transactions";
 import { listCurrentUserTransactions } from "@/services/finance/transactions-service";
+import {
+  formatFinancialAmount,
+  formatFinancialDate,
+} from "@/utils/financial-formatters";
 
 export const metadata = { title: "Lançamentos" };
 
@@ -20,12 +23,6 @@ const messages: Record<string, string> = {
   "status-updated": "Status do lançamento atualizado com sucesso.",
   "status-error": "Não foi possível alterar o status do lançamento.",
 };
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR").format(
-    new Date(`${value}T12:00:00`),
-  );
-}
 
 export default async function TransactionsPage({
   searchParams,
@@ -268,7 +265,7 @@ export default async function TransactionsPage({
                       ? "Liquidação de fatura"
                       : category?.name ?? "Categoria indisponível"}{" "}
                     ·{" "}
-                    {formatDate(transaction.transaction_date)}
+                    {formatFinancialDate(transaction.transaction_date)}
                   </p>
                 </div>
                 <p
@@ -277,7 +274,7 @@ export default async function TransactionsPage({
                   }`}
                 >
                   {income ? "+" : "−"}{" "}
-                  {formatMoney(
+                  {formatFinancialAmount(
                     transaction.amount_minor,
                     account?.currency ?? "BRL",
                     CURRENCY_LOCALES[account?.currency ?? "BRL"],
