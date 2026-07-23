@@ -23,8 +23,22 @@
 - Categorias padrão são criadas automaticamente para cada usuário, partem de uma taxonomia inspirada na orientação AUVP adaptada aos contextos do MeuMoney e são imutáveis pelo cliente.
 - Categorias personalizadas podem ser criadas, editadas, inativadas e reativadas pelo proprietário.
 - A combinação nome, natureza e contexto é única por usuário.
-- A interface não cria lançamentos nem calcula saldo atual nesta sprint. O valor exibido na conta é explicitamente o saldo inicial.
+- O saldo inicial permanece como ponto de partida imutável do cálculo histórico, embora possa ser corrigido pelo usuário na edição da conta.
+
+## Movimentações financeiras — Sprint 3
+
+- Lançamentos são exclusivamente receitas ou despesas. O valor é sempre positivo em unidades menores; o tipo define o sinal no saldo.
+- Categorias de Receita só podem classificar receitas, e categorias de Despesa só podem classificar despesas. A integridade é validada no banco.
+- Somente lançamentos ativos e realizados participam do saldo atual. Lançamentos previstos e inativos permanecem no histórico sem efeito financeiro.
+- Editar conta, tipo, valor, status ou atividade não exige ajustar um saldo persistido: o saldo é recalculado a partir dos registros vigentes.
+- Transferência não é receita nem despesa e não recebe categoria.
+- Origem e destino devem ser contas ativas distintas do mesmo usuário e, nesta sprint, da mesma moeda.
+- Cada transferência possui um registro canônico e exatamente duas movimentações vinculadas: saída na origem e entrada no destino.
+- Criar, editar, inativar ou reativar uma transferência altera os dois lados na mesma transação SQL. Uma falha reverte toda a operação.
+- Transferências previstas ou inativas não afetam o saldo realizado.
+- Lançamentos e transferências não são excluídos fisicamente pela interface.
+- O saldo atual é o saldo inicial, mais receitas realizadas ativas, menos despesas realizadas ativas, mais transferências recebidas realizadas ativas e menos transferências enviadas realizadas ativas.
 
 ## Regras financeiras futuras
 
-Lançamentos, transferências, cartões, faturas, orçamentos, investimentos, conversão monetária e saldo calculado serão definidos em sprints posteriores.
+Cartões, faturas, parcelamentos, recorrências, orçamentos, investimentos e conversão monetária serão definidos em sprints posteriores.

@@ -24,3 +24,11 @@ As rotas `/accounts` e `/categories` usam Server Components para leitura e Serve
 Valores monetários são convertidos na fronteira do formulário e persistidos como inteiros em unidades menores. A moeda é armazenada separadamente. Contas e categorias personalizadas usam arquivamento lógico (`archived_at`), preservando referências futuras e histórico.
 
 Categorias padrão são criadas no banco junto ao perfil, por função `security definer`. O cliente pode consultá-las, mas não recebe política nem privilégio de atualização para registros `is_system = true`.
+
+## Movimentações financeiras — Sprint 3
+
+As rotas `/transactions` e `/transfers` seguem o mesmo fluxo Server Component → Server Action → serviço de dados. Formulários validam a entrada com Zod, enquanto triggers e funções SQL repetem as invariantes críticas na fronteira confiável do banco.
+
+Receitas e despesas são persistidas em `transactions`. Transferências usam uma tabela canônica separada e duas entradas vinculadas. Mutações de transferência são expostas apenas por RPCs `security definer` com `search_path` vazio; assim, a origem e o destino são criados, editados e inativados atomicamente.
+
+O saldo não é atualizado por incrementos mutáveis. A view `account_balances`, executada com as políticas do usuário chamador, calcula o valor atual a partir do saldo inicial e apenas de movimentações ativas e realizadas. Essa decisão elimina rotinas de compensação ao editar lançamentos e reduz o risco de divergência.
