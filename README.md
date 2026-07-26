@@ -1,6 +1,6 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A feature atual acrescenta recorrências seguras e idempotentes à fundação financeira existente.
+Progressive Web App de gestão financeira pessoal. A feature atual acrescenta orçamento mensal por categoria, contexto e moeda à fundação financeira existente.
 
 ## Stack
 
@@ -20,16 +20,16 @@ Progressive Web App de gestão financeira pessoal. A feature atual acrescenta re
 
 Configure no Supabase Auth as URLs permitidas `http://localhost:3000/**` e as URLs equivalentes da Vercel. Consulte [docs/local-setup.md](docs/local-setup.md).
 
-## Recorrências
+## Orçamento mensal
 
-- receitas e despesas semanais, mensais ou anuais;
-- datas inicial e final opcional, com próxima ocorrência rastreável;
-- calendário ancorado que trata meses curtos e anos bissextos;
-- geração idempotente, sem duplicidades, sempre como lançamento Previsto;
-- edição, suspensão, reativação e encerramento definitivo;
+- valores planejado, realizado, disponível e percentual consumido;
+- separação por mês, categoria, contexto Pessoal/Profissional e moeda;
+- despesas concluídas e ativas, sem transferências ou pagamentos técnicos;
+- compras no cartão reconhecidas pela competência de cada parcela;
+- cópia idempotente do orçamento do mês anterior;
 - valores inteiros, RLS e isolamento por usuário.
 
-Cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial, orçamentos, investimentos e dashboard financeiro completo permanecem fora desta entrega.
+Cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial, investimentos e dashboard financeiro completo permanecem fora desta entrega.
 
 ## Qualidade
 

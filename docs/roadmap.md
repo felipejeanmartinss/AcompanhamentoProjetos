@@ -24,6 +24,10 @@ Cartões, compras à vista ou parceladas, competência por fechamento, faturas, 
 
 Receitas e despesas semanais, mensais ou anuais, calendário ancorado para meses curtos, data final opcional, geração idempotente de lançamentos previstos e estados ativa, suspensa e encerrada.
 
+## Sprint 6 — Orçamento mensal
+
+Planejamento mensal por categoria, contexto e moeda, comparação entre planejado e realizado, reconhecimento das parcelas de cartão por competência, exclusão de transferências e pagamentos técnicos, cópia idempotente do mês anterior e isolamento por RLS.
+
 ## Próximas sprints
 
-Orçamentos, patrimônio, investimentos, importações, relatórios e recursos avançados de cartão serão planejados separadamente.
+Patrimônio, investimentos, importações, relatórios e recursos avançados de cartão serão planejados separadamente.

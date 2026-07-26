@@ -219,6 +219,40 @@ export type AccountBalance = Account & {
   current_balance_minor: number;
 };
 
+export type MonthlyBudget = {
+  id: string;
+  user_id: string;
+  category_id: string;
+  reference_month: string;
+  currency: SupportedCurrency;
+  planned_amount_minor: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MonthlyConsumption = {
+  user_id: string;
+  category_id: string;
+  context: FinancialContext;
+  currency: SupportedCurrency;
+  reference_month: string;
+  realized_amount_minor: number;
+};
+
+export type MonthlyBudgetProgress = {
+  budget_id: string | null;
+  user_id: string;
+  category_id: string;
+  category_name: string;
+  context: FinancialContext;
+  currency: SupportedCurrency;
+  reference_month: string;
+  planned_amount_minor: number;
+  realized_amount_minor: number;
+  available_amount_minor: number;
+  percentage_consumed: number | null;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -392,6 +426,24 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      monthly_budgets: {
+        Row: MonthlyBudget;
+        Insert: {
+          id?: string;
+          user_id: string;
+          category_id: string;
+          reference_month: string;
+          currency: SupportedCurrency;
+          planned_amount_minor?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          planned_amount_minor?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       account_balances: {
@@ -400,6 +452,14 @@ export type Database = {
       };
       credit_card_summaries: {
         Row: CreditCardSummary;
+        Relationships: [];
+      };
+      monthly_consumption: {
+        Row: MonthlyConsumption;
+        Relationships: [];
+      };
+      monthly_budget_progress: {
+        Row: MonthlyBudgetProgress;
         Relationships: [];
       };
     };
@@ -501,6 +561,14 @@ export type Database = {
       };
       generate_recurring_transactions: {
         Args: { target_until: string };
+        Returns: number;
+      };
+      copy_previous_month_budgets: {
+        Args: {
+          target_reference_month: string;
+          target_context: FinancialContext;
+          target_currency: SupportedCurrency;
+        };
         Returns: number;
       };
     };

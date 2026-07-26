@@ -50,6 +50,21 @@ O cliente só escreve diretamente na configuração do cartão. Compras e fatura
 
 `set_recurring_transaction_state` concentra as transições ativa, suspensa e encerrada. As RPCs são `security definer`, usam `search_path` vazio, validam o usuário chamador e possuem execução concedida somente a `authenticated`. A tabela mantém RLS por `user_id`, não expõe `DELETE` e restringe escrita a colunas do modelo.
 
+## Orçamentos mensais
+
+`public.monthly_budgets` armazena o valor planejado por proprietário, categoria de Despesa, mês e moeda. `planned_amount_minor` usa `bigint` no intervalo inteiro seguro do TypeScript. O contexto é obtido da categoria, que já é a dimensão canônica Pessoal/Profissional, evitando duas fontes divergentes para a mesma classificação.
+
+RLS restringe leitura, inserção e atualização a `auth.uid() = user_id`. Um trigger confirma que a categoria está ativa, pertence ao usuário e possui natureza Despesa. O cliente recebe privilégios apenas de leitura, inserção das colunas do planejamento e atualização do valor; não recebe `DELETE`.
+
+`public.monthly_consumption` é uma view `security_invoker` que agrega duas fontes:
+
+- despesas categorizadas, ativas e concluídas em `transactions`, usando a moeda da conta e excluindo a origem técnica de pagamento de fatura;
+- parcelas em `credit_card_installments`, usando a moeda do cartão e `competence_date`, desde que compra e parcela não estejam canceladas.
+
+Transferências ficam fora naturalmente por usarem tabelas próprias. `public.monthly_budget_progress`, também `security_invoker`, combina orçamento e consumo com `FULL OUTER JOIN`, mantendo visível uma categoria com gasto realizado mesmo sem planejamento. Ela deriva planejado, realizado, disponível e percentual consumido sem persistir acumuladores mutáveis.
+
+`copy_previous_month_budgets` copia somente categorias ativas do contexto e moeda solicitados. A RPC valida `auth.uid()`, usa `search_path` vazio e `ON CONFLICT DO NOTHING`, tornando retries seguros e preservando valores já cadastrados no destino.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;
@@ -59,6 +74,8 @@ O cliente só escreve diretamente na configuração do cartão. Compras e fatura
 - valores de lançamentos e transferências são positivos e limitados ao intervalo inteiro seguro do TypeScript;
 - valores de cartão usam `numeric(16,0)`, sem escala decimal, no mesmo intervalo seguro;
 - valores de recorrências usam `bigint` positivo no mesmo intervalo inteiro seguro;
+- valores de orçamento usam `bigint` não negativo no mesmo intervalo inteiro seguro;
+- a combinação usuário, mês, moeda e categoria de um orçamento é única;
 - uma recorrência possui no máximo uma ocorrência por data, garantida por índice parcial único;
 - parcelas somam exatamente o total da compra e nenhuma parcela pode ser zero;
 - cada transferência possui no máximo uma entrada e uma saída, garantidas por restrição única;

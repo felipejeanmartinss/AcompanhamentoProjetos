@@ -64,6 +64,19 @@
 - Conta e categoria devem estar ativas e pertencer ao usuário autenticado; a natureza da categoria deve coincidir com a natureza da recorrência.
 - Recorrências e ocorrências não são excluídas fisicamente pela interface.
 
+## Orçamento mensal — Sprint 6
+
+- Cada orçamento pertence a um usuário, mês de referência, categoria de Despesa e moeda. O contexto Pessoal ou Profissional é o contexto atual da categoria.
+- Valores planejados são inteiros não negativos em unidades monetárias menores. Moedas diferentes nunca são somadas no mesmo comparativo.
+- O realizado de lançamentos em conta considera somente despesas ativas e concluídas, com categoria, no mês da transação.
+- Transferências não são despesas e ficam fora do orçamento. Pagamentos técnicos de fatura também são excluídos para que uma compra no cartão não seja contada duas vezes.
+- O realizado de cartão é reconhecido pela competência de cada parcela. Parcelas de compras canceladas ou parcelas canceladas não participam do cálculo.
+- Uma compra parcelada pode comprometer orçamentos de meses futuros; o pagamento da fatura não altera o realizado de consumo.
+- Disponível é `planejado - realizado` e pode ser negativo. Percentual consumido é `realizado / planejado`; quando o planejado é zero, o percentual não é calculado.
+- Consumo sem orçamento aparece no comparativo com planejado zero, deixando gastos não planejados visíveis.
+- Copiar o mês anterior mantém contexto e moeda, ignora categorias inativas e não sobrescreve linhas que já existem no mês de destino. A operação é idempotente.
+- O cliente não exclui orçamentos fisicamente. Um valor planejado igual a zero representa uma categoria sem verba no mês.
+
 ## Regras financeiras futuras
 
-Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, orçamentos e investimentos serão definidos em sprints posteriores.
+Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária e investimentos serão definidos em sprints posteriores.

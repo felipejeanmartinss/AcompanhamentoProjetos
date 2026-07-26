@@ -48,3 +48,11 @@ A rota `/recurring-transactions` mantém modelos periódicos por Server Componen
 O PostgreSQL é a fronteira transacional da geração. A RPC `generate_recurring_transactions` seleciona apenas modelos de `auth.uid()`, bloqueia as linhas processadas e combina índice único parcial com `ON CONFLICT DO NOTHING`. Assim, retries e execuções concorrentes são seguros. Cada ocorrência nasce como lançamento Previsto, com vínculo de origem imutável; o saldo realizado permanece inalterado.
 
 O cálculo de próxima data usa a data inicial como âncora. A mesma regra pura existe no domínio TypeScript para validação e testes de calendário, enquanto a função SQL é a implementação autoritativa durante a geração. Estados são alterados por RPC para impedir que um cliente reative uma recorrência encerrada.
+
+## Orçamento mensal — Sprint 6
+
+A rota `/budgets` é protegida no servidor e segue o fluxo Server Component → Server Action → serviço financeiro. Os filtros de mês, contexto e moeda ficam na URL, permitindo recarregar e compartilhar o mesmo recorte sem estado global no cliente. O único Client Component contém o formulário editável e não acessa o Supabase.
+
+O PostgreSQL calcula o realizado nas views `monthly_consumption` e `monthly_budget_progress`, ambas `security_invoker`, de modo que as políticas das tabelas de origem continuam sendo aplicadas. Lançamentos em conta são reconhecidos pela data da transação; compras no cartão, pela competência das parcelas. A transação técnica de pagamento da fatura é excluída da fonte de consumo.
+
+O planejamento é salvo com `UPSERT` na chave única usuário/mês/moeda/categoria. A cópia do mês anterior é uma RPC transacional idempotente que valida o usuário autenticado e não sobrescreve linhas existentes. A regra pura equivalente em `src/domain/budgets.ts` sustenta os testes de agregação, exclusões e isolamento.
