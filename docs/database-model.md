@@ -76,6 +76,16 @@ As quatro views da Sprint 7 são somente leitura e usam `security_invoker`, pres
 
 O resumo mensal reutiliza `monthly_consumption`, portanto herda a exclusão de transferências e pagamentos técnicos e o reconhecimento das parcelas pela competência. Índices parciais cobrem receitas realizadas ativas e faturas não pagas. As permissões das views são revogadas de `anon` e concedidas explicitamente a `authenticated`.
 
+## Patrimônio líquido
+
+`public.net_worth_items` armazena ativos e passivos manuais fora do domínio transacional. `kind` separa Ativo e Passivo; `item_type` detalha imóvel, veículo, outro bem, financiamento, empréstimo ou outra dívida. Uma restrição impede combinações incompatíveis. Moeda, valor atual inteiro, data da avaliação, contexto, observações e estado de arquivamento completam a posição atual.
+
+`public.net_worth_valuations` guarda cada ponto histórico com proprietário, item, moeda, valor inteiro e data. A chave estrangeira composta `(item_id, user_id)` impede associar uma avaliação a item de outro usuário. A combinação item/data é única. O cliente recebe somente `SELECT`; triggers `security definer`, sem `search_path` implícito e sem permissão pública de execução, registram a avaliação inicial e mudanças posteriores atomicamente.
+
+`public.net_worth_summary` é uma view `security_invoker` que considera somente itens ativos e agrega ativos, passivos e sua diferença por usuário e moeda. Índices compostos atendem a RLS, listagem, histórico e resumo. Não há chave estrangeira ou trigger conectando essas tabelas a `accounts`, `transactions` ou estruturas de cartão.
+
+RLS permite ao proprietário ler, inserir e atualizar seus itens, mas não excluir. Avaliações só podem ser lidas pelo proprietário. Privilégios por coluna mantêm `user_id`, `kind` e `currency` imutáveis depois do cadastro e exigem que arquivamento atualize estado e timestamp de forma consistente.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;
@@ -86,6 +96,9 @@ O resumo mensal reutiliza `monthly_consumption`, portanto herda a exclusão de t
 - valores de cartão usam `numeric(16,0)`, sem escala decimal, no mesmo intervalo seguro;
 - valores de recorrências usam `bigint` positivo no mesmo intervalo inteiro seguro;
 - valores de orçamento usam `bigint` não negativo no mesmo intervalo inteiro seguro;
+- valores patrimoniais e avaliações usam `bigint` não negativo no mesmo intervalo inteiro seguro;
+- natureza e tipo patrimonial devem ser compatíveis, e moeda e natureza são imutáveis após o cadastro;
+- um item possui no máximo uma avaliação por data;
 - a combinação usuário, mês, moeda e categoria de um orçamento é única;
 - uma recorrência possui no máximo uma ocorrência por data, garantida por índice parcial único;
 - parcelas somam exatamente o total da compra e nenhuma parcela pode ser zero;

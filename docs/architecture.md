@@ -64,3 +64,11 @@ A rota `/dashboard` permanece um Server Component dinâmico. Ela recebe somente 
 O navegador recebe apenas o recorte necessário: resumo do mês e dos cinco anteriores, categorias do mês selecionado, contas ativas e no máximo cinco recorrências e cinco faturas por moeda. O serviço consulta cada moeda separadamente para que um grupo não esconda os próximos itens de outro e monta seções independentes para BRL, USD e EUR.
 
 As agregações de alto volume ocorrem no PostgreSQL. A interface renderiza gráficos acessíveis com HTML e CSS no servidor, sem biblioteca cliente nem carregamento do histórico bruto. `loading.tsx` oferece o estado de transição e `error.tsx` isola falhas inesperadas com tentativa segura de recarga.
+
+## Patrimônio líquido — Sprint 8
+
+A rota `/net-worth` é independente das contas transacionais. Ela usa Server Components para resumo, listagem e histórico, Server Actions para mutações e `src/services/finance/net-worth-service.ts` como única camada de acesso ao Supabase. O formulário cliente apenas coleta e valida a entrada; não cria cliente de banco nem executa consultas.
+
+`net_worth_items` mantém a posição atual de cada bem ou dívida. Um trigger interno, executado na mesma transação, grava a avaliação inicial e cada alteração de valor ou data em `net_worth_valuations`. A tabela histórica não concede escrita a clientes autenticados. A moeda e a natureza Ativo/Passivo ficam imutáveis depois do cadastro para impedir que avaliações anteriores mudem de significado.
+
+`net_worth_summary` é uma view `security_invoker` que agrega apenas itens ativos por usuário e moeda. O PostgreSQL calcula ativos, passivos e a diferença antes da renderização; nenhuma conversão cambial ou soma entre moedas ocorre no navegador. RLS, filtros explícitos por `user_id`, privilégios por coluna e ausência de `DELETE` formam barreiras complementares.

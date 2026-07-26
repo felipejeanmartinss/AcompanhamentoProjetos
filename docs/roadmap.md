@@ -32,6 +32,10 @@ Planejamento mensal por categoria, contexto e moeda, comparação entre planejad
 
 Visão mensal consolidada por moeda com saldos por conta, receitas, despesas de consumo, resultado, orçamento consumido, próximas recorrências e faturas não pagas. Evolução dos últimos seis meses e distribuição por categoria usam consultas agregadas seguras, estados vazios, carregamento e layout responsivo.
 
+## Sprint 8 — Patrimônio líquido
+
+Ativos e passivos manuais separados das contas transacionais, avaliações históricas, arquivamento lógico e resumo de patrimônio líquido por moeda. Serviços exclusivos do servidor, RLS e migrations cumulativas preservam isolamento e exatidão.
+
 ## Próximas sprints
 
-Patrimônio, investimentos, importações, relatórios analíticos e recursos avançados de cartão serão planejados separadamente.
+Investimentos, importações, relatórios analíticos, avaliações automáticas de mercado e recursos avançados de cartão serão planejados separadamente.

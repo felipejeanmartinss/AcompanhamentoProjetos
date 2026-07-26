@@ -91,6 +91,20 @@
 - Faturas abertas, fechadas ou vencidas permanecem visíveis até o pagamento. Uma fatura aberta ou fechada cuja data de vencimento passou recebe estado visual Vencida.
 - O dashboard é somente leitura; suas consultas respeitam RLS e são limitadas no servidor antes da renderização.
 
+## Patrimônio líquido — Sprint 8
+
+- Ativos manuais podem ser imóveis, veículos ou outros bens. Passivos manuais podem ser financiamentos, empréstimos ou outras dívidas.
+- Itens patrimoniais são independentes de contas, lançamentos, transferências, cartões e investimentos. Cadastrar ou avaliar um item não altera saldo nem fluxo de caixa.
+- Cada item pertence a um único usuário e possui nome, natureza, tipo, contexto, moeda, valor atual, data de avaliação, observações e estado.
+- Valores são inteiros não negativos em unidades monetárias menores e limitados ao intervalo inteiro seguro do TypeScript.
+- Patrimônio líquido é `ativos ativos - passivos ativos`, calculado separadamente para BRL, USD e EUR. Não existe conversão cambial implícita.
+- A avaliação inicial é registrada automaticamente. Alterar valor ou data registra uma nova avaliação na mesma transação; corrigir a mesma data atualiza esse ponto sem criar duplicidade.
+- Uma nova avaliação deve usar data igual ou posterior à avaliação atual e não pode estar no futuro.
+- A moeda e a natureza Ativo/Passivo não mudam depois do cadastro, preservando o significado do histórico. O subtipo pode mudar somente dentro da mesma natureza.
+- Arquivar um item é uma operação lógica e o remove do resumo sem apagar seu cadastro ou histórico. Reativar volta a considerá-lo nos cálculos.
+- O histórico é somente leitura para o cliente. A interface não oferece exclusão física de itens nem avaliações.
+- Todos os acessos passam por serviços de servidor, filtros explícitos de proprietário e RLS no PostgreSQL.
+
 ## Regras financeiras futuras
 
-Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária e investimentos serão definidos em sprints posteriores.
+Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, investimentos e avaliações automáticas de mercado serão definidos em sprints posteriores.

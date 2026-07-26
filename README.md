@@ -1,6 +1,6 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A feature atual transforma a página inicial privada em um dashboard financeiro mensal consolidado e separado por moeda.
+Progressive Web App de gestão financeira pessoal. A feature atual acrescenta uma visão de patrimônio líquido com ativos, passivos e avaliações históricas separados por moeda.
 
 ## Stack
 
@@ -20,16 +20,16 @@ Progressive Web App de gestão financeira pessoal. A feature atual transforma a 
 
 Configure no Supabase Auth as URLs permitidas `http://localhost:3000/**` e as URLs equivalentes da Vercel. Consulte [docs/local-setup.md](docs/local-setup.md).
 
-## Dashboard financeiro
+## Patrimônio líquido
 
-- saldos atuais por conta, receitas, despesas de consumo e resultado mensal;
-- orçamento consumido, próximas recorrências e faturas não pagas;
-- evolução do mês selecionado e dos cinco anteriores;
-- distribuição das despesas por categoria;
-- seções independentes para BRL, USD e EUR, sem conversão implícita;
-- consultas agregadas no PostgreSQL, valores inteiros, RLS e isolamento por usuário.
+- imóveis, veículos, outros bens, financiamentos, empréstimos e outras dívidas;
+- histórico automático de avaliações;
+- resumo de ativos, passivos e patrimônio líquido por BRL, USD e EUR;
+- arquivamento lógico e isolamento por usuário com RLS;
+- valores inteiros e serviços exclusivos do servidor;
+- tabelas patrimoniais independentes de contas e movimentações.
 
-Cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial e investimentos permanecem fora desta entrega.
+Conversão cambial, investimentos com cotação, depreciação automática e integração de bens com contas permanecem fora desta entrega.
 
 ## Qualidade
 

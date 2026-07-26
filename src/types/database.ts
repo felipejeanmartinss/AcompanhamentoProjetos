@@ -39,6 +39,14 @@ export type TransactionOriginType =
   | "system";
 export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 export type RecurringTransactionState = "active" | "suspended" | "ended";
+export type NetWorthItemKind = "asset" | "liability";
+export type NetWorthItemType =
+  | "real_estate"
+  | "vehicle"
+  | "other_asset"
+  | "financing"
+  | "loan"
+  | "other_debt";
 
 export type Profile = {
   id: string;
@@ -302,6 +310,42 @@ export type FinancialDashboardInvoice = {
   outstanding_amount_minor: number;
 };
 
+export type NetWorthItem = {
+  id: string;
+  user_id: string;
+  kind: NetWorthItemKind;
+  item_type: NetWorthItemType;
+  name: string;
+  currency: SupportedCurrency;
+  current_value_minor: number;
+  valuation_date: string;
+  context: FinancialContext;
+  notes: string | null;
+  is_active: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NetWorthValuation = {
+  id: string;
+  item_id: string;
+  user_id: string;
+  currency: SupportedCurrency;
+  value_minor: number;
+  valuation_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NetWorthSummary = {
+  user_id: string;
+  currency: SupportedCurrency;
+  assets_minor: number;
+  liabilities_minor: number;
+  net_worth_minor: number;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -493,6 +537,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      net_worth_items: {
+        Row: NetWorthItem;
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: NetWorthItemKind;
+          item_type: NetWorthItemType;
+          name: string;
+          currency: SupportedCurrency;
+          current_value_minor: number;
+          valuation_date: string;
+          context: FinancialContext;
+          notes?: string | null;
+          is_active?: boolean;
+          archived_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Pick<
+            NetWorthItem,
+            | "item_type"
+            | "name"
+            | "current_value_minor"
+            | "valuation_date"
+            | "context"
+            | "notes"
+            | "is_active"
+            | "archived_at"
+          >
+        >;
+        Relationships: [];
+      };
+      net_worth_valuations: {
+        Row: NetWorthValuation;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       account_balances: {
@@ -525,6 +608,10 @@ export type Database = {
       };
       financial_dashboard_invoices: {
         Row: FinancialDashboardInvoice;
+        Relationships: [];
+      };
+      net_worth_summary: {
+        Row: NetWorthSummary;
         Relationships: [];
       };
     };
@@ -649,6 +736,8 @@ export type Database = {
       credit_card_invoice_status: CreditCardInvoiceStatus;
       transaction_origin_type: TransactionOriginType;
       recurrence_frequency: RecurrenceFrequency;
+      net_worth_kind: NetWorthItemKind;
+      net_worth_item_type: NetWorthItemType;
     };
     CompositeTypes: Record<string, never>;
   };
