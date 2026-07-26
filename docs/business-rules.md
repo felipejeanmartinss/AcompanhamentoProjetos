@@ -117,6 +117,20 @@
 - Nenhuma taxa de rentabilidade, anualização ou valorização é inventada quando o histórico não sustenta o cálculo.
 - O patrimônio soma o valor atual das posições ativas como ativos, sempre por usuário e moeda.
 
+## Importação CSV e OFX — Sprint 10
+
+- Upload nunca cria lançamentos diretamente. O fluxo obrigatório é leitura, normalização, prévia, associação, correção e confirmação explícita.
+- CSV aceita separador, cabeçalho, linhas iniciais ignoradas, posição das colunas, formato de data, separador decimal e inversão de sinal configuráveis.
+- OFX exige blocos estruturados `STMTTRN`; data, valor, identificador, nome e memorando são normalizados quando disponíveis.
+- O valor com sinal no staging define a natureza: positivo é Receita e negativo é Despesa. O lançamento final mantém valor positivo inteiro e usa o tipo para definir o efeito financeiro.
+- Conta e categoria devem estar ativas, pertencer ao usuário e ter natureza compatível com a linha.
+- A assinatura SHA-256 usa usuário, conta, data, valor com sinal e descrição normalizada. Ela não substitui as validações de propriedade ou RLS.
+- Duplicidades são detectadas no histórico, em jobs já confirmados e dentro do próprio arquivo. Uma linha duplicada nasce desmarcada e precisa ser corrigida para mudar sua assinatura.
+- A confirmação insere somente linhas válidas e selecionadas, sempre como lançamentos realizados. Qualquer falha reverte todos os lançamentos daquele job.
+- O arquivo original é descartado imediatamente após a leitura em memória. Conteúdo financeiro não pode ser enviado a logs.
+- Staging é apagado ao confirmar ou cancelar. O job preserva apenas metadados e contadores de auditoria.
+- CSV e OFX são limitados a 5 MB e 1.000 movimentações por job no MVP.
+
 ## Regras financeiras futuras
 
 Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, cotações e avaliações automáticas de mercado serão definidos em sprints posteriores.

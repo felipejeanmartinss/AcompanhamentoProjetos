@@ -59,6 +59,20 @@ export type InvestmentCashFlowType =
   | "contribution"
   | "redemption"
   | "income";
+export type ImportFileType = "csv" | "ofx";
+export type ImportJobStatus =
+  | "review"
+  | "ready"
+  | "completed"
+  | "cancelled"
+  | "failed";
+export type ImportRowStatus =
+  | "needs_review"
+  | "valid"
+  | "duplicate"
+  | "ignored"
+  | "imported"
+  | "error";
 
 export type Profile = {
   id: string;
@@ -413,6 +427,66 @@ export type InvestmentPositionSummary = InvestmentPosition & {
   total_result_minor: number | null;
 };
 
+export type ImportJob = {
+  id: string;
+  user_id: string;
+  account_id: string | null;
+  file_name: string;
+  file_type: ImportFileType;
+  file_sha256: string;
+  csv_config: Json | null;
+  status: ImportJobStatus;
+  source_row_count: number;
+  valid_row_count: number;
+  duplicate_row_count: number;
+  imported_row_count: number;
+  original_file_discarded_at: string;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ImportStagingRow = {
+  id: string;
+  job_id: string;
+  user_id: string;
+  source_row_number: number;
+  source_external_id: string | null;
+  source_date_text: string;
+  source_amount_text: string;
+  transaction_date: string | null;
+  description: string | null;
+  normalized_description: string | null;
+  signed_amount_minor: number | null;
+  transaction_type: TransactionType | null;
+  amount_minor: number | null;
+  account_id: string | null;
+  category_id: string | null;
+  signature: string | null;
+  status: ImportRowStatus;
+  validation_code:
+    | "invalid_date"
+    | "invalid_amount"
+    | "missing_description"
+    | "unsupported_record"
+    | null;
+  duplicate_transaction_id: string | null;
+  is_selected: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ImportedTransactionSignature = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  transaction_id: string;
+  source_job_id: string | null;
+  signature: string;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -705,6 +779,24 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      import_jobs: {
+        Row: ImportJob;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      import_staging_rows: {
+        Row: ImportStagingRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      imported_transaction_signatures: {
+        Row: ImportedTransactionSignature;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       account_balances: {
@@ -855,6 +947,48 @@ export type Database = {
           target_currency: SupportedCurrency;
         };
         Returns: number;
+      };
+      create_import_job: {
+        Args: {
+          target_file_name: string;
+          target_file_type: ImportFileType;
+          target_file_sha256: string;
+          target_csv_config: Json | null;
+          target_rows: Json;
+        };
+        Returns: string;
+      };
+      configure_import_job: {
+        Args: {
+          target_job_id: string;
+          target_account_id: string;
+        };
+        Returns: boolean;
+      };
+      update_import_staging_row: {
+        Args: {
+          target_row_id: string;
+          target_transaction_date: string;
+          target_description: string;
+          target_signed_amount_minor: number;
+          target_category_id: string;
+        };
+        Returns: boolean;
+      };
+      set_import_staging_row_ignored: {
+        Args: {
+          target_row_id: string;
+          target_ignored: boolean;
+        };
+        Returns: boolean;
+      };
+      confirm_import_job: {
+        Args: { target_job_id: string };
+        Returns: number;
+      };
+      cancel_import_job: {
+        Args: { target_job_id: string };
+        Returns: boolean;
       };
     };
     Enums: {
