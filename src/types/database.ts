@@ -37,6 +37,8 @@ export type TransactionOriginType =
   | "manual"
   | "credit_card_invoice_payment"
   | "system";
+export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
+export type RecurringTransactionState = "active" | "suspended" | "ended";
 
 export type Profile = {
   id: string;
@@ -88,6 +90,26 @@ export type Transaction = {
   origin_type: TransactionOriginType;
   origin_id: string | null;
   credit_card_invoice_id: string | null;
+  recurring_transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecurringTransaction = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  category_id: string;
+  transaction_type: TransactionType;
+  description: string;
+  amount_minor: number;
+  frequency: RecurrenceFrequency;
+  start_date: string;
+  end_date: string | null;
+  next_occurrence: string;
+  notes: string | null;
+  is_active: boolean;
+  ended_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -279,6 +301,40 @@ export type Database = {
             | "origin_type"
             | "origin_id"
             | "credit_card_invoice_id"
+            | "recurring_transaction_id"
+          >
+        >;
+        Relationships: [];
+      };
+      recurring_transactions: {
+        Row: RecurringTransaction;
+        Insert: {
+          id?: string;
+          user_id: string;
+          account_id: string;
+          category_id: string;
+          transaction_type: TransactionType;
+          description: string;
+          amount_minor: number;
+          frequency: RecurrenceFrequency;
+          start_date: string;
+          end_date?: string | null;
+          next_occurrence: string;
+          notes?: string | null;
+          is_active?: boolean;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Omit<
+            RecurringTransaction,
+            | "id"
+            | "user_id"
+            | "is_active"
+            | "ended_at"
+            | "created_at"
+            | "updated_at"
           >
         >;
         Relationships: [];
@@ -428,6 +484,25 @@ export type Database = {
         Args: { target_invoice_id: string };
         Returns: boolean;
       };
+      recurrence_next_date: {
+        Args: {
+          anchor_date: string;
+          current_occurrence: string;
+          target_frequency: RecurrenceFrequency;
+        };
+        Returns: string;
+      };
+      set_recurring_transaction_state: {
+        Args: {
+          target_recurring_id: string;
+          target_state: RecurringTransactionState;
+        };
+        Returns: boolean;
+      };
+      generate_recurring_transactions: {
+        Args: { target_until: string };
+        Returns: number;
+      };
     };
     Enums: {
       account_type: AccountType;
@@ -440,6 +515,7 @@ export type Database = {
       credit_card_installment_status: CreditCardInstallmentStatus;
       credit_card_invoice_status: CreditCardInvoiceStatus;
       transaction_origin_type: TransactionOriginType;
+      recurrence_frequency: RecurrenceFrequency;
     };
     CompositeTypes: Record<string, never>;
   };

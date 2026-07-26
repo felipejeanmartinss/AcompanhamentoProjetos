@@ -40,3 +40,11 @@ Cartões são lidos e editados por Server Components, Server Actions e serviços
 O consumo é reconhecido na compra e categorizado como despesa, mas não movimenta uma conta. O pagamento integral da fatura cria uma transação técnica realizada, vinculada à fatura por `origin_type` e chaves estrangeiras. Essa transação representa a liquidação financeira e é protegida contra edição manual. A view `credit_card_summaries`, com `security_invoker`, deriva o limite utilizado de todas as parcelas ativas ainda não pagas.
 
 Valores de cartão também usam unidades menores inteiras. As colunas `numeric(16,0)` preservam exatidão no PostgreSQL e permanecem dentro do intervalo inteiro seguro adotado pelo TypeScript. Consulte `docs/credit-cards.md`.
+
+## Recorrências
+
+A rota `/recurring-transactions` mantém modelos periódicos por Server Components, Server Actions e um serviço exclusivo do servidor. A geração não ocorre durante renderização e exige uma ação explícita do usuário com data limite, evitando efeitos colaterais ocultos.
+
+O PostgreSQL é a fronteira transacional da geração. A RPC `generate_recurring_transactions` seleciona apenas modelos de `auth.uid()`, bloqueia as linhas processadas e combina índice único parcial com `ON CONFLICT DO NOTHING`. Assim, retries e execuções concorrentes são seguros. Cada ocorrência nasce como lançamento Previsto, com vínculo de origem imutável; o saldo realizado permanece inalterado.
+
+O cálculo de próxima data usa a data inicial como âncora. A mesma regra pura existe no domínio TypeScript para validação e testes de calendário, enquanto a função SQL é a implementação autoritativa durante a geração. Estados são alterados por RPC para impedir que um cliente reative uma recorrência encerrada.

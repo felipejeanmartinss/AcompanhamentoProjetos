@@ -51,6 +51,19 @@
 - Estorno de pagamento inativa a transação técnica e devolve fatura e parcelas ao estado fechado/faturado na mesma transação SQL.
 - Cartões e compras não são excluídos fisicamente pela interface.
 
+## Recorrências — feature/recurring-transactions
+
+- Recorrências representam exclusivamente receitas ou despesas e mantêm valor positivo em unidades menores inteiras.
+- As frequências disponíveis são semanal, mensal e anual. O dia da data inicial é a âncora do calendário; em meses curtos, usa-se o último dia real e a âncora volta a ser aplicada nos meses seguintes.
+- A data final é opcional e inclusiva. Depois da última ocorrência válida, a recorrência é encerrada automaticamente.
+- Toda ocorrência gerada é um lançamento `pending` (Previsto). Nenhuma recorrência cria um lançamento Realizado automaticamente.
+- A geração é idempotente. A combinação entre recorrência e data da ocorrência é única, e chamadas repetidas ou concorrentes não criam duplicidades.
+- A próxima ocorrência indica a primeira data ainda não processada pelo gerador.
+- Suspender impede novas gerações e permite reativação. Encerrar é definitivo e não permite reativação.
+- Editar uma recorrência altera somente gerações futuras. Lançamentos previstos já gerados permanecem como registro histórico.
+- Conta e categoria devem estar ativas e pertencer ao usuário autenticado; a natureza da categoria deve coincidir com a natureza da recorrência.
+- Recorrências e ocorrências não são excluídas fisicamente pela interface.
+
 ## Regras financeiras futuras
 
-Recorrências, cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, orçamentos e investimentos serão definidos em sprints posteriores.
+Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, orçamentos e investimentos serão definidos em sprints posteriores.

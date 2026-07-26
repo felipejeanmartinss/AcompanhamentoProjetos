@@ -226,7 +226,8 @@ export default async function TransactionsPage({
             ? categoryById.get(transaction.category_id)
             : undefined;
           const isTechnical =
-            transaction.origin_type === "credit_card_invoice_payment";
+            transaction.origin_type !== "manual";
+          const isRecurring = Boolean(transaction.recurring_transaction_id);
           const income = transaction.transaction_type === "income";
           return (
             <article
@@ -262,7 +263,9 @@ export default async function TransactionsPage({
                   <p className="mt-1 text-sm text-slate-600">
                     {account?.name ?? "Conta indisponível"} ·{" "}
                     {isTechnical
-                      ? "Liquidação de fatura"
+                      ? isRecurring
+                        ? "Gerado por recorrência"
+                        : "Liquidação de fatura"
                       : category?.name ?? "Categoria indisponível"}{" "}
                     ·{" "}
                     {formatFinancialDate(transaction.transaction_date)}
@@ -284,7 +287,9 @@ export default async function TransactionsPage({
               <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                 {isTechnical ? (
                   <span className="text-sm font-semibold text-slate-500">
-                    Gerenciado pela fatura
+                    {isRecurring
+                      ? "Gerenciado pela recorrência"
+                      : "Gerenciado pela fatura"}
                   </span>
                 ) : (
                   <>

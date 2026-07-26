@@ -1,6 +1,6 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A Sprint 4 acrescenta cartões, compras parceladas, faturas e pagamentos seguros à fundação financeira existente.
+Progressive Web App de gestão financeira pessoal. A feature atual acrescenta recorrências seguras e idempotentes à fundação financeira existente.
 
 ## Stack
 
@@ -20,17 +20,16 @@ Progressive Web App de gestão financeira pessoal. A Sprint 4 acrescenta cartõe
 
 Configure no Supabase Auth as URLs permitidas `http://localhost:3000/**` e as URLs equivalentes da Vercel. Consulte [docs/local-setup.md](docs/local-setup.md).
 
-## Sprint 4
+## Recorrências
 
-- cadastro, edição, inativação e reativação de cartões;
-- compras à vista ou parceladas, com divisão exata em centavos;
-- competência automática pelo dia de fechamento e ajuste para meses curtos;
-- faturas abertas, fechadas, pagas ou vencidas;
-- pagamento integral com movimentação técnica na conta, sem duplicar consumo;
-- limite utilizado e disponível derivados das parcelas não pagas;
-- operações críticas atômicas, RLS e isolamento por usuário.
+- receitas e despesas semanais, mensais ou anuais;
+- datas inicial e final opcional, com próxima ocorrência rastreável;
+- calendário ancorado que trata meses curtos e anos bissextos;
+- geração idempotente, sem duplicidades, sempre como lançamento Previsto;
+- edição, suspensão, reativação e encerramento definitivo;
+- valores inteiros, RLS e isolamento por usuário.
 
-Recorrências, cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial, orçamentos, investimentos e dashboard financeiro completo permanecem fora desta entrega. Veja [docs/credit-cards.md](docs/credit-cards.md).
+Cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial, orçamentos, investimentos e dashboard financeiro completo permanecem fora desta entrega.
 
 ## Qualidade
 

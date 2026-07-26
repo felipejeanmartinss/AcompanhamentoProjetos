@@ -40,6 +40,16 @@ O cliente só escreve diretamente na configuração do cartão. Compras e fatura
 
 `public.transactions.origin_type` distingue lançamentos manuais da saída técnica de pagamento de fatura. Pagamentos possuem `category_id` nulo, vínculo obrigatório com a fatura e não podem ser alterados pelas políticas de atualização manual.
 
+## Recorrências
+
+`public.recurring_transactions` é o modelo de uma receita ou despesa periódica. Mantém proprietário, conta, categoria, natureza, valor inteiro, frequência, datas inicial/final, próxima ocorrência, atividade e encerramento definitivo.
+
+`public.transactions.recurring_transaction_id` vincula cada previsão à recorrência de origem. Lançamentos gerados usam `origin_type = 'system'`, `status = 'pending'`, categoria obrigatória e o mesmo UUID em `origin_id`. O índice parcial único em `(recurring_transaction_id, transaction_date)` é a barreira de idempotência.
+
+`generate_recurring_transactions(target_until)` processa somente recorrências ativas do usuário retornado por `auth.uid()`. A função bloqueia cada modelo com `FOR UPDATE SKIP LOCKED`, insere com `ON CONFLICT DO NOTHING`, avança `next_occurrence` e encerra calendários que ultrapassaram a data final, tudo na mesma transação PostgreSQL.
+
+`set_recurring_transaction_state` concentra as transições ativa, suspensa e encerrada. As RPCs são `security definer`, usam `search_path` vazio, validam o usuário chamador e possuem execução concedida somente a `authenticated`. A tabela mantém RLS por `user_id`, não expõe `DELETE` e restringe escrita a colunas do modelo.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;
@@ -48,6 +58,8 @@ O cliente só escreve diretamente na configuração do cartão. Compras e fatura
 - nomes de categorias são únicos por usuário, natureza e contexto;
 - valores de lançamentos e transferências são positivos e limitados ao intervalo inteiro seguro do TypeScript;
 - valores de cartão usam `numeric(16,0)`, sem escala decimal, no mesmo intervalo seguro;
+- valores de recorrências usam `bigint` positivo no mesmo intervalo inteiro seguro;
+- uma recorrência possui no máximo uma ocorrência por data, garantida por índice parcial único;
 - parcelas somam exatamente o total da compra e nenhuma parcela pode ser zero;
 - cada transferência possui no máximo uma entrada e uma saída, garantidas por restrição única;
 - triggers mantêm `updated_at`;

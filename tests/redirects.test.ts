@@ -12,6 +12,7 @@ describe("safe redirects", () => {
     expect(isPrivatePath("/accounts/new")).toBe(true);
     expect(isPrivatePath("/categories/123/edit")).toBe(true);
     expect(isPrivatePath("/transactions/new")).toBe(true);
+    expect(isPrivatePath("/recurring-transactions/new")).toBe(true);
     expect(isPrivatePath("/transfers/123/edit")).toBe(true);
     expect(isPrivatePath("/credit-cards/123/invoices")).toBe(true);
     expect(isPrivatePath("/settings/profile")).toBe(true);

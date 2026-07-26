@@ -20,6 +20,10 @@ Receitas, despesas, estados Previsto/Realizado, filtros, edição e inativação
 
 Cartões, compras à vista ou parceladas, competência por fechamento, faturas, pagamento integral, estorno seguro e limites derivados.
 
+## Sprint 5 — Recorrências
+
+Receitas e despesas semanais, mensais ou anuais, calendário ancorado para meses curtos, data final opcional, geração idempotente de lançamentos previstos e estados ativa, suspensa e encerrada.
+
 ## Próximas sprints
 
-Recorrências, orçamentos, patrimônio, investimentos, importações, relatórios e recursos avançados de cartão serão planejados separadamente e não pertencem à Sprint 4.
+Orçamentos, patrimônio, investimentos, importações, relatórios e recursos avançados de cartão serão planejados separadamente.

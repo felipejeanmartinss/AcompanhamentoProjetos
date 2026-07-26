@@ -27,7 +27,7 @@ export type TransactionFilters = {
 };
 
 const transactionColumns =
-  "id, user_id, account_id, category_id, transaction_type, description, amount_minor, transaction_date, status, notes, is_active, origin_type, origin_id, credit_card_invoice_id, created_at, updated_at";
+  "id, user_id, account_id, category_id, transaction_type, description, amount_minor, transaction_date, status, notes, is_active, origin_type, origin_id, credit_card_invoice_id, recurring_transaction_id, created_at, updated_at";
 
 export async function listCurrentUserTransactions(
   filters: TransactionFilters,
