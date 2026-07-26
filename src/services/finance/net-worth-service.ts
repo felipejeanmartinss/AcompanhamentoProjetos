@@ -31,7 +31,7 @@ export async function listCurrentUserNetWorth() {
     supabase
       .from("net_worth_summary")
       .select(
-        "user_id, currency, assets_minor, liabilities_minor, net_worth_minor",
+        "user_id, currency, assets_minor, manual_assets_minor, investments_minor, liabilities_minor, net_worth_minor",
       )
       .eq("user_id", user.id)
       .order("currency", { ascending: true }),

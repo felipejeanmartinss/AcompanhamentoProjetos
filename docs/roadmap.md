@@ -36,6 +36,14 @@ Visão mensal consolidada por moeda com saldos por conta, receitas, despesas de 
 
 Ativos e passivos manuais separados das contas transacionais, avaliações históricas, arquivamento lógico e resumo de patrimônio líquido por moeda. Serviços exclusivos do servidor, RLS e migrations cumulativas preservam isolamento e exatidão.
 
+## Sprint 9 — Investimentos
+
+Posições manuais de renda fixa, ações, fundos, ETFs, fundos imobiliários,
+previdência e criptomoedas. Quantidade decimal exata, custo, valor atual,
+fotografias históricas, aportes, resgates e rendas permanecem separados. O valor
+atual integra o patrimônio por moeda, sem cotações automáticas ou rentabilidade
+inventada.
+
 ## Próximas sprints
 
-Investimentos, importações, relatórios analíticos, avaliações automáticas de mercado e recursos avançados de cartão serão planejados separadamente.
+Importações, relatórios analíticos, avaliações automáticas de mercado e recursos avançados de cartão serão planejados separadamente.

@@ -47,6 +47,18 @@ export type NetWorthItemType =
   | "financing"
   | "loan"
   | "other_debt";
+export type InvestmentClass =
+  | "fixed_income"
+  | "stock"
+  | "fund"
+  | "etf"
+  | "real_estate_fund"
+  | "pension"
+  | "crypto";
+export type InvestmentCashFlowType =
+  | "contribution"
+  | "redemption"
+  | "income";
 
 export type Profile = {
   id: string;
@@ -342,8 +354,63 @@ export type NetWorthSummary = {
   user_id: string;
   currency: SupportedCurrency;
   assets_minor: number;
+  manual_assets_minor: number;
+  investments_minor: number;
   liabilities_minor: number;
   net_worth_minor: number;
+};
+
+export type InvestmentPosition = {
+  id: string;
+  user_id: string;
+  institution: string;
+  investment_class: InvestmentClass;
+  asset_name: string;
+  currency: SupportedCurrency;
+  quantity: string;
+  accumulated_cost_minor: number;
+  current_value_minor: number;
+  position_date: string;
+  context: FinancialContext;
+  history_is_complete: boolean;
+  notes: string | null;
+  is_active: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InvestmentPositionSnapshot = {
+  id: string;
+  position_id: string;
+  user_id: string;
+  currency: SupportedCurrency;
+  quantity: string;
+  accumulated_cost_minor: number;
+  current_value_minor: number;
+  position_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InvestmentCashFlow = {
+  id: string;
+  position_id: string;
+  user_id: string;
+  cash_flow_type: InvestmentCashFlowType;
+  amount_minor: number;
+  quantity: string | null;
+  cash_flow_date: string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type InvestmentPositionSummary = InvestmentPosition & {
+  contributions_minor: number;
+  redemptions_minor: number;
+  income_minor: number;
+  unrealized_appreciation_minor: number;
+  total_result_minor: number | null;
 };
 
 export type Database = {
@@ -576,6 +643,68 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      investment_positions: {
+        Row: InvestmentPosition;
+        Insert: {
+          id?: string;
+          user_id: string;
+          institution: string;
+          investment_class: InvestmentClass;
+          asset_name: string;
+          currency: SupportedCurrency;
+          quantity: string;
+          accumulated_cost_minor: number;
+          current_value_minor: number;
+          position_date: string;
+          context: FinancialContext;
+          history_is_complete?: boolean;
+          notes?: string | null;
+          is_active?: boolean;
+          archived_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Pick<
+            InvestmentPosition,
+            | "institution"
+            | "investment_class"
+            | "asset_name"
+            | "quantity"
+            | "accumulated_cost_minor"
+            | "current_value_minor"
+            | "position_date"
+            | "context"
+            | "history_is_complete"
+            | "notes"
+            | "is_active"
+            | "archived_at"
+          >
+        >;
+        Relationships: [];
+      };
+      investment_position_snapshots: {
+        Row: InvestmentPositionSnapshot;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      investment_cash_flows: {
+        Row: InvestmentCashFlow;
+        Insert: {
+          id?: string;
+          position_id: string;
+          user_id: string;
+          cash_flow_type: InvestmentCashFlowType;
+          amount_minor: number;
+          quantity?: string | null;
+          cash_flow_date: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       account_balances: {
@@ -612,6 +741,10 @@ export type Database = {
       };
       net_worth_summary: {
         Row: NetWorthSummary;
+        Relationships: [];
+      };
+      investment_position_summary: {
+        Row: InvestmentPositionSummary;
         Relationships: [];
       };
     };
@@ -738,6 +871,8 @@ export type Database = {
       recurrence_frequency: RecurrenceFrequency;
       net_worth_kind: NetWorthItemKind;
       net_worth_item_type: NetWorthItemType;
+      investment_class: InvestmentClass;
+      investment_cash_flow_type: InvestmentCashFlowType;
     };
     CompositeTypes: Record<string, never>;
   };

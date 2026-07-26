@@ -72,3 +72,23 @@ A rota `/net-worth` é independente das contas transacionais. Ela usa Server Com
 `net_worth_items` mantém a posição atual de cada bem ou dívida. Um trigger interno, executado na mesma transação, grava a avaliação inicial e cada alteração de valor ou data em `net_worth_valuations`. A tabela histórica não concede escrita a clientes autenticados. A moeda e a natureza Ativo/Passivo ficam imutáveis depois do cadastro para impedir que avaliações anteriores mudem de significado.
 
 `net_worth_summary` é uma view `security_invoker` que agrega apenas itens ativos por usuário e moeda. O PostgreSQL calcula ativos, passivos e a diferença antes da renderização; nenhuma conversão cambial ou soma entre moedas ocorre no navegador. RLS, filtros explícitos por `user_id`, privilégios por coluna e ausência de `DELETE` formam barreiras complementares.
+
+## Investimentos — Sprint 9
+
+As rotas `/investments` usam Server Components para resumo, posições e
+históricos, Server Actions para mutações e
+`src/services/finance/investments-service.ts` como única camada de acesso ao
+Supabase. Quantidades atravessam a aplicação como texto decimal canônico;
+valores monetários permanecem inteiros.
+
+`investment_positions` mantém a fotografia atual. Triggers atômicos criam
+`investment_position_snapshots` no cadastro e em alterações de quantidade,
+custo, valor ou data. `investment_cash_flows` é um histórico separado e
+acrescentável de aportes, resgates e rendas; registrar um fluxo não altera
+silenciosamente a posição.
+
+As views `investment_position_summary` e `net_worth_summary` usam
+`security_invoker`. A primeira separa fluxos e só deriva o resultado total com
+histórico declarado completo. A segunda incorpora o valor atual das posições
+ativas como ativos, mantendo investimentos, ativos manuais e passivos em
+colunas distintas e consolidação independente por moeda.

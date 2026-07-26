@@ -86,6 +86,32 @@ O resumo mensal reutiliza `monthly_consumption`, portanto herda a exclusão de t
 
 RLS permite ao proprietário ler, inserir e atualizar seus itens, mas não excluir. Avaliações só podem ser lidas pelo proprietário. Privilégios por coluna mantêm `user_id`, `kind` e `currency` imutáveis depois do cadastro e exigem que arquivamento atualize estado e timestamp de forma consistente.
 
+## Investimentos
+
+`public.investment_positions` guarda a posição manual atual. Quantidade usa
+`numeric(30,12)`; custo acumulado e valor atual usam `bigint` no intervalo
+inteiro seguro. Moeda é imutável e o arquivamento combina `is_active` com
+`archived_at`.
+
+`public.investment_position_snapshots` guarda fotografias automáticas da posição
+por data. A chave estrangeira composta `(position_id, user_id)` preserva o
+proprietário e a combinação posição/data é única. Clientes possuem somente
+`SELECT`; triggers internos fazem o `UPSERT` atômico.
+
+`public.investment_cash_flows` registra aportes, resgates e rendas com valor
+positivo, quantidade opcional e data. A chave estrangeira composta impede
+histórico entre usuários. A interface acrescenta eventos, sem `UPDATE` ou
+`DELETE`.
+
+`public.investment_position_summary` agrega os três tipos de fluxo e deriva a
+diferença não realizada entre valor atual e custo acumulado. O resultado total
+fica `NULL` quando `history_is_complete` é falso. `public.net_worth_summary`
+passa a combinar ativos manuais, investimentos ativos e passivos manuais em
+colunas distintas, por moeda.
+
+Todas as tabelas possuem RLS por `user_id`, índices iniciados pelo proprietário
+e privilégios mínimos. As views usam `security_invoker`.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;
@@ -97,6 +123,9 @@ RLS permite ao proprietário ler, inserir e atualizar seus itens, mas não exclu
 - valores de recorrências usam `bigint` positivo no mesmo intervalo inteiro seguro;
 - valores de orçamento usam `bigint` não negativo no mesmo intervalo inteiro seguro;
 - valores patrimoniais e avaliações usam `bigint` não negativo no mesmo intervalo inteiro seguro;
+- quantidades de investimento usam `numeric(30,12)` não negativo e valores de posição usam `bigint` não negativo;
+- fluxos de investimento usam valor inteiro positivo e quantidade decimal positiva opcional;
+- uma posição possui no máximo uma fotografia por data;
 - natureza e tipo patrimonial devem ser compatíveis, e moeda e natureza são imutáveis após o cadastro;
 - um item possui no máximo uma avaliação por data;
 - a combinação usuário, mês, moeda e categoria de um orçamento é única;

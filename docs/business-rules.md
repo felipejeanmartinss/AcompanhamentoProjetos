@@ -105,6 +105,18 @@
 - O histórico é somente leitura para o cliente. A interface não oferece exclusão física de itens nem avaliações.
 - Todos os acessos passam por serviços de servidor, filtros explícitos de proprietário e RLS no PostgreSQL.
 
+## Investimentos — Sprint 9
+
+- Classes aceitas: renda fixa, ação, fundo, ETF, fundo imobiliário, previdência e criptomoeda.
+- Posições são atualizadas manualmente; cotações e integrações bancárias não fazem parte do módulo.
+- Dinheiro usa unidades mínimas inteiras; quantidade usa decimal exato com até 12 casas e nunca é calculada com ponto flutuante.
+- Moeda é imutável após o cadastro e posições arquivadas não compõem o patrimônio.
+- Aportes, resgates e rendas são históricos independentes da fotografia atual.
+- A diferença sobre o custo usa somente custo acumulado e valor atual informados.
+- O resultado total só é calculado quando o usuário declara que todos os fluxos desde o início foram registrados.
+- Nenhuma taxa de rentabilidade, anualização ou valorização é inventada quando o histórico não sustenta o cálculo.
+- O patrimônio soma o valor atual das posições ativas como ativos, sempre por usuário e moeda.
+
 ## Regras financeiras futuras
 
-Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, investimentos e avaliações automáticas de mercado serão definidos em sprints posteriores.
+Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária, cotações e avaliações automáticas de mercado serão definidos em sprints posteriores.

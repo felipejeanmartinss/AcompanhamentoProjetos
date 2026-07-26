@@ -1,6 +1,6 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A feature atual acrescenta uma visão de patrimônio líquido com ativos, passivos e avaliações históricas separados por moeda.
+Progressive Web App de gestão financeira pessoal. A feature atual acrescenta posições de investimento manuais, histórico de aportes, resgates e rendas e integração segura ao patrimônio líquido por moeda.
 
 ## Stack
 
@@ -30,6 +30,18 @@ Configure no Supabase Auth as URLs permitidas `http://localhost:3000/**` e as UR
 - tabelas patrimoniais independentes de contas e movimentações.
 
 Conversão cambial, investimentos com cotação, depreciação automática e integração de bens com contas permanecem fora desta entrega.
+
+## Investimentos
+
+- renda fixa, ações, fundos, ETFs, fundos imobiliários, previdência e criptomoedas;
+- instituição, ativo, quantidade decimal exata, custo acumulado e valor atual;
+- fotografias históricas da posição e fluxos separados de aporte, resgate e renda;
+- resultado total somente quando o histórico for declarado completo;
+- valor atual integrado ao patrimônio, sem misturar moedas;
+- RLS, arquivamento lógico e serviços exclusivos do servidor.
+
+Cotações automáticas, integração bancária, conversão cambial e cálculo de
+rentabilidade sem histórico suficiente permanecem fora da Sprint 9.
 
 ## Qualidade
 

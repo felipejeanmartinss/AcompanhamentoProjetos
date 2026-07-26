@@ -9,3 +9,7 @@ PostgreSQL para permitir testes rápidos de competência, exclusões e isolament
 
 As regras de patrimônio em `net-worth.ts` classificam ativos e passivos,
 validam valores inteiros e espelham a consolidação por usuário e moeda.
+
+As regras de investimentos em `investments.ts` preservam quantidade decimal,
+validam posições e separam aporte, resgate, renda e diferença sobre custo sem
+inventar rentabilidade.

@@ -233,7 +233,27 @@ export default async function NetWorthPage({
                 </p>
                 <dl className="mt-4 grid gap-3">
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="text-sm text-slate-600">Ativos</dt>
+                    <dt className="text-sm text-slate-600">Ativos manuais</dt>
+                    <dd className="font-semibold text-emerald-700">
+                      {formatMoney(
+                        summary.manual_assets_minor,
+                        summary.currency,
+                        CURRENCY_LOCALES[summary.currency],
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-sm text-slate-600">Investimentos</dt>
+                    <dd className="font-semibold text-emerald-700">
+                      {formatMoney(
+                        summary.investments_minor,
+                        summary.currency,
+                        CURRENCY_LOCALES[summary.currency],
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-sm text-slate-600">Ativos totais</dt>
                     <dd className="font-semibold text-emerald-700">
                       {formatMoney(
                         summary.assets_minor,
