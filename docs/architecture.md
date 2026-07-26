@@ -29,13 +29,13 @@ Categorias iniciais são criadas no banco junto ao perfil, por função `securit
 
 As rotas `/transactions` e `/transfers` seguem o mesmo fluxo Server Component → Server Action → serviço de dados. Formulários validam a entrada com Zod, enquanto triggers e funções SQL repetem as invariantes críticas na fronteira confiável do banco.
 
-Receitas e despesas são persistidas em `transactions`. Transferências usam uma tabela canônica separada e duas entradas vinculadas. Mutações de transferência são expostas apenas por RPCs `security definer` com `search_path` vazio; assim, a origem e o destino são criados, editados e inativados atomicamente.
+Receitas e despesas são persistidas em `transactions`. Transferências usam uma tabela canônica separada e duas entradas vinculadas. Mutações de transferência são expostas por fachadas públicas `security invoker`, que delegam à implementação privilegiada no schema `private`; assim, a origem e o destino são criados, editados e inativados atomicamente sem expor uma função privilegiada no schema da Data API.
 
 O saldo não é atualizado por incrementos mutáveis. A view `account_balances`, executada com as políticas do usuário chamador, calcula o valor atual a partir do saldo inicial e apenas de movimentações ativas e realizadas. Essa decisão elimina rotinas de compensação ao editar lançamentos e reduz o risco de divergência.
 
 ## Cartões e faturas — Sprint 4
 
-Cartões são lidos e editados por Server Components, Server Actions e serviços exclusivos do servidor. Compras, parcelas, fechamento, pagamento e estorno não aceitam escrita direta do cliente: RPCs `security definer`, com `search_path` vazio e validação de `auth.uid()`, executam cada operação crítica em uma única transação PostgreSQL.
+Cartões são lidos e editados por Server Components, Server Actions e serviços exclusivos do servidor. Compras, parcelas, fechamento, pagamento e estorno não aceitam escrita direta do cliente: fachadas públicas sem elevação delegam a funções internas `security definer`, com `search_path` vazio e validação de `auth.uid()`, para executar cada operação crítica em uma única transação PostgreSQL.
 
 O consumo é reconhecido na compra e categorizado como despesa, mas não movimenta uma conta. O pagamento integral da fatura cria uma transação técnica realizada, vinculada à fatura por `origin_type` e chaves estrangeiras. Essa transação representa a liquidação financeira e é protegida contra edição manual. A view `credit_card_summaries`, com `security_invoker`, deriva o limite utilizado de todas as parcelas ativas ainda não pagas.
 
@@ -48,6 +48,20 @@ A rota `/recurring-transactions` mantém modelos periódicos por Server Componen
 O PostgreSQL é a fronteira transacional da geração. A RPC `generate_recurring_transactions` seleciona apenas modelos de `auth.uid()`, bloqueia as linhas processadas e combina índice único parcial com `ON CONFLICT DO NOTHING`. Assim, retries e execuções concorrentes são seguros. Cada ocorrência nasce como lançamento Previsto, com vínculo de origem imutável; o saldo realizado permanece inalterado.
 
 O cálculo de próxima data usa a data inicial como âncora. A mesma regra pura existe no domínio TypeScript para validação e testes de calendário, enquanto a função SQL é a implementação autoritativa durante a geração. Estados são alterados por RPC para impedir que um cliente reative uma recorrência encerrada.
+
+## Segurança de RPCs e senhas
+
+Operações que precisam atravessar várias tabelas mantêm uma fachada de nome estável no schema `public`, marcada como `security invoker`. A implementação transacional fica no schema `private`, usa `security definer`, `search_path` vazio, valida `auth.uid()` e não é exposta diretamente pela Data API. Essa separação elimina a exposição de RPCs privilegiadas sem quebrar os contratos usados pelos serviços.
+
+No plano gratuito do Supabase, a verificação de senhas contra bases de credenciais vazadas não está disponível. O MVP aplica controle compensatório explícito: mínimo de 12 caracteres, bloqueio local de um pequeno conjunto de senhas triviais, confirmação de e-mail, respostas neutras na recuperação e limites do Supabase Auth. Isso reduz o risco, mas não equivale à verificação de credenciais vazadas; o alerta do Advisor permanece aceito até a adoção do plano que oferece o recurso.
+
+## Importação de arquivos — Sprint 10
+
+As rotas `/imports`, `/imports/new` e `/imports/[id]` usam Server Components para leitura e Server Actions para mutações. O arquivo chega ao servidor, é limitado a 5 MB, decodificado em memória e normalizado por parsers puros de CSV ou OFX. O byte original nunca é persistido nem enviado a logs; apenas uma impressão SHA-256, metadados mínimos e linhas temporárias entram no banco.
+
+`import_jobs` controla o fluxo; `import_staging_rows` contém a prévia corrigível; `imported_transaction_signatures` mantém a barreira de idempotência. Conta e categorias são associadas antes da confirmação. A assinatura usa usuário, conta, data, valor com sinal e descrição normalizada.
+
+A confirmação acontece em uma função interna transacional: bloqueia o job, recalcula duplicidades, valida todas as linhas selecionadas, cria os lançamentos realizados e registra as assinaturas. Qualquer falha reverte tudo. Ao concluir ou cancelar, as linhas de staging são apagadas. O arquivo original já havia sido descartado imediatamente após a leitura.
 
 ## Orçamento mensal — Sprint 6
 

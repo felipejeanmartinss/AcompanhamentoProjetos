@@ -1,6 +1,8 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A feature atual acrescenta posições de investimento manuais, histórico de aportes, resgates e rendas e integração segura ao patrimônio líquido por moeda.
+Progressive Web App de gestão financeira pessoal. A feature atual acrescenta
+importação assistida de CSV e OFX com staging, correção, duplicidades e
+confirmação atômica.
 
 ## Stack
 
@@ -42,6 +44,18 @@ Conversão cambial, investimentos com cotação, depreciação automática e int
 
 Cotações automáticas, integração bancária, conversão cambial e cálculo de
 rentabilidade sem histórico suficiente permanecem fora da Sprint 9.
+
+## Importação de arquivos
+
+- CSV configurável e OFX estruturado;
+- arquivo original lido em memória e descartado antes da criação do job;
+- prévia com associação de conta e categoria, correção e linhas ignoradas;
+- assinatura estável e duplicidades verificadas antes da confirmação;
+- confirmação atômica e staging apagado ao concluir ou cancelar;
+- fixtures anônimas e testes de datas, valores, duplicidades e rollback.
+
+XLS, PDF, OCR, categorização automática e layouts salvos por banco permanecem
+fora da Sprint 10. Consulte [docs/file-imports.md](docs/file-imports.md).
 
 ## Qualidade
 

@@ -48,7 +48,7 @@ O cliente só escreve diretamente na configuração do cartão. Compras e fatura
 
 `generate_recurring_transactions(target_until)` processa somente recorrências ativas do usuário retornado por `auth.uid()`. A função bloqueia cada modelo com `FOR UPDATE SKIP LOCKED`, insere com `ON CONFLICT DO NOTHING`, avança `next_occurrence` e encerra calendários que ultrapassaram a data final, tudo na mesma transação PostgreSQL.
 
-`set_recurring_transaction_state` concentra as transições ativa, suspensa e encerrada. As RPCs são `security definer`, usam `search_path` vazio, validam o usuário chamador e possuem execução concedida somente a `authenticated`. A tabela mantém RLS por `user_id`, não expõe `DELETE` e restringe escrita a colunas do modelo.
+`set_recurring_transaction_state` concentra as transições ativa, suspensa e encerrada. A fachada pública usa `security invoker`; a implementação interna usa `security definer`, `search_path` vazio, valida o usuário chamador e só pode ser alcançada pelo papel autenticado. A tabela mantém RLS por `user_id`, não expõe `DELETE` e restringe escrita a colunas do modelo.
 
 ## Orçamentos mensais
 
@@ -112,6 +112,28 @@ colunas distintas, por moeda.
 Todas as tabelas possuem RLS por `user_id`, índices iniciados pelo proprietário
 e privilégios mínimos. As views usam `security_invoker`.
 
+## Importações de arquivo
+
+`public.import_jobs` guarda proprietário, conta associada, nome saneado, formato,
+impressão SHA-256 do arquivo, configuração do CSV, estado, contadores e
+timestamps de descarte, confirmação ou cancelamento. Não contém os bytes do
+arquivo.
+
+`public.import_staging_rows` guarda somente a representação temporária
+normalizada e os campos originais mínimos necessários para correção. Valor com
+sinal define receita ou despesa; `amount_minor` permanece positivo. Status
+separa linhas pendentes, válidas, duplicadas, ignoradas e com erro.
+
+`public.imported_transaction_signatures` vincula uma assinatura estável ao
+lançamento criado. A chave única `(user_id, signature)` impede que dois jobs
+confirmados gravem a mesma movimentação. A assinatura inclui usuário, conta,
+data, valor com sinal e descrição normalizada.
+
+As três tabelas possuem RLS de leitura por proprietário e não aceitam escrita
+direta do cliente. As fachadas públicas `security invoker` delegam a funções
+internas transacionais. Confirmação e cancelamento apagam o staging; a
+confirmação também cria todos os lançamentos e assinaturas de forma atômica.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;
@@ -125,6 +147,9 @@ e privilégios mínimos. As views usam `security_invoker`.
 - valores patrimoniais e avaliações usam `bigint` não negativo no mesmo intervalo inteiro seguro;
 - quantidades de investimento usam `numeric(30,12)` não negativo e valores de posição usam `bigint` não negativo;
 - fluxos de investimento usam valor inteiro positivo e quantidade decimal positiva opcional;
+- valores importados são convertidos para inteiro com sinal no staging e inteiro positivo no lançamento final;
+- a combinação usuário e assinatura importada é única;
+- cada linha de origem é única dentro de um job;
 - uma posição possui no máximo uma fotografia por data;
 - natureza e tipo patrimonial devem ser compatíveis, e moeda e natureza são imutáveis após o cadastro;
 - um item possui no máximo uma avaliação por data;

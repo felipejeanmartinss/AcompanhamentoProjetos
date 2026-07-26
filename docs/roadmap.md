@@ -44,6 +44,15 @@ fotografias históricas, aportes, resgates e rendas permanecem separados. O valo
 atual integra o patrimônio por moeda, sem cotações automáticas ou rentabilidade
 inventada.
 
+## Sprint 10 — Importação CSV e OFX
+
+Fluxo assistido com leitura temporária, normalização, staging, prévia,
+associação de conta e categoria, correção, assinatura estável, detecção de
+duplicidades e confirmação atômica. CSV configurável e OFX estruturado entram
+primeiro; arquivos originais e staging possuem descarte explícito.
+
 ## Próximas sprints
 
-Importações, relatórios analíticos, avaliações automáticas de mercado e recursos avançados de cartão serão planejados separadamente.
+Mapeamentos salvos por banco, importação XLS/PDF, relatórios analíticos,
+avaliações automáticas de mercado e recursos avançados de cartão serão
+planejados separadamente.

@@ -6,6 +6,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
     { href: "/dashboard", label: "Início" },
     { href: "/accounts", label: "Contas" },
     { href: "/transactions", label: "Movimentações" },
+    { href: "/imports", label: "Importar" },
     { href: "/recurring-transactions", label: "Recorrências" },
     { href: "/budgets", label: "Orçamentos" },
     { href: "/transfers", label: "Transferências" },
