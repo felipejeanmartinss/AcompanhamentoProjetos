@@ -77,6 +77,20 @@
 - Copiar o mês anterior mantém contexto e moeda, ignora categorias inativas e não sobrescreve linhas que já existem no mês de destino. A operação é idempotente.
 - O cliente não exclui orçamentos fisicamente. Um valor planejado igual a zero representa uma categoria sem verba no mês.
 
+## Dashboard financeiro — Sprint 7
+
+- Todo indicador consolidado é calculado por mês e moeda. Valores em BRL, USD e EUR nunca são somados entre si e não há conversão cambial implícita.
+- Receita mensal considera apenas receitas ativas e realizadas na data do lançamento.
+- Despesa mensal considera somente consumo ativo e realizado: despesas categorizadas em conta e parcelas de cartão reconhecidas no mês de competência.
+- Transferências e pagamentos técnicos de fatura não compõem receitas, despesas, resultado, orçamento consumido ou distribuição por categoria.
+- Resultado mensal é `receitas realizadas - despesas de consumo`.
+- Orçamento consumido compara todas as despesas de consumo do mês com todo o valor planejado na mesma moeda, incluindo consumo sem orçamento no numerador.
+- Saldo por conta representa a posição atual, derivada do saldo inicial e de movimentações realizadas. Ele não é reconstruído para o encerramento do mês histórico selecionado.
+- A evolução apresenta o mês selecionado e os cinco meses anteriores, preenchendo meses sem movimento com zero.
+- Próximas recorrências exibem apenas modelos ativos, não encerrados e com próxima ocorrência a partir da data atual.
+- Faturas abertas, fechadas ou vencidas permanecem visíveis até o pagamento. Uma fatura aberta ou fechada cuja data de vencimento passou recebe estado visual Vencida.
+- O dashboard é somente leitura; suas consultas respeitam RLS e são limitadas no servidor antes da renderização.
+
 ## Regras financeiras futuras
 
 Cashback, milhas, cartões adicionais, juros rotativos, parcelamento de fatura, antecipação, conversão monetária e investimentos serão definidos em sprints posteriores.

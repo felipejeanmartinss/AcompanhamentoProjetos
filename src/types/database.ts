@@ -253,6 +253,55 @@ export type MonthlyBudgetProgress = {
   percentage_consumed: number | null;
 };
 
+export type FinancialDashboardMonthlySummary = {
+  user_id: string;
+  reference_month: string;
+  currency: SupportedCurrency;
+  income_amount_minor: number;
+  expense_amount_minor: number;
+  result_amount_minor: number;
+  planned_amount_minor: number;
+  budget_percentage_consumed: number | null;
+};
+
+export type FinancialDashboardExpenseCategory = {
+  user_id: string;
+  reference_month: string;
+  currency: SupportedCurrency;
+  category_id: string;
+  category_name: string;
+  context: FinancialContext;
+  expense_amount_minor: number;
+};
+
+export type FinancialDashboardUpcomingRecurrence = {
+  id: string;
+  user_id: string;
+  currency: SupportedCurrency;
+  account_name: string;
+  category_name: string;
+  context: FinancialContext;
+  transaction_type: TransactionType;
+  description: string;
+  amount_minor: number;
+  frequency: RecurrenceFrequency;
+  next_occurrence: string;
+};
+
+export type FinancialDashboardInvoice = {
+  id: string;
+  user_id: string;
+  credit_card_id: string;
+  credit_card_name: string;
+  currency: SupportedCurrency;
+  reference_month: string;
+  due_date: string;
+  status: CreditCardInvoiceStatus;
+  effective_status: CreditCardInvoiceStatus;
+  total_amount_minor: number;
+  outstanding_amount_minor: number;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -460,6 +509,22 @@ export type Database = {
       };
       monthly_budget_progress: {
         Row: MonthlyBudgetProgress;
+        Relationships: [];
+      };
+      financial_dashboard_monthly_summary: {
+        Row: FinancialDashboardMonthlySummary;
+        Relationships: [];
+      };
+      financial_dashboard_expense_categories: {
+        Row: FinancialDashboardExpenseCategory;
+        Relationships: [];
+      };
+      financial_dashboard_upcoming_recurrences: {
+        Row: FinancialDashboardUpcomingRecurrence;
+        Relationships: [];
+      };
+      financial_dashboard_invoices: {
+        Row: FinancialDashboardInvoice;
         Relationships: [];
       };
     };

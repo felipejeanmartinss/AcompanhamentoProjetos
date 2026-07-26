@@ -28,6 +28,10 @@ Receitas e despesas semanais, mensais ou anuais, calendário ancorado para meses
 
 Planejamento mensal por categoria, contexto e moeda, comparação entre planejado e realizado, reconhecimento das parcelas de cartão por competência, exclusão de transferências e pagamentos técnicos, cópia idempotente do mês anterior e isolamento por RLS.
 
+## Sprint 7 — Dashboard financeiro
+
+Visão mensal consolidada por moeda com saldos por conta, receitas, despesas de consumo, resultado, orçamento consumido, próximas recorrências e faturas não pagas. Evolução dos últimos seis meses e distribuição por categoria usam consultas agregadas seguras, estados vazios, carregamento e layout responsivo.
+
 ## Próximas sprints
 
-Patrimônio, investimentos, importações, relatórios e recursos avançados de cartão serão planejados separadamente.
+Patrimônio, investimentos, importações, relatórios analíticos e recursos avançados de cartão serão planejados separadamente.

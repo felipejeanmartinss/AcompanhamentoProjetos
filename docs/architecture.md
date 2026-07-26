@@ -56,3 +56,11 @@ A rota `/budgets` é protegida no servidor e segue o fluxo Server Component → 
 O PostgreSQL calcula o realizado nas views `monthly_consumption` e `monthly_budget_progress`, ambas `security_invoker`, de modo que as políticas das tabelas de origem continuam sendo aplicadas. Lançamentos em conta são reconhecidos pela data da transação; compras no cartão, pela competência das parcelas. A transação técnica de pagamento da fatura é excluída da fonte de consumo.
 
 O planejamento é salvo com `UPSERT` na chave única usuário/mês/moeda/categoria. A cópia do mês anterior é uma RPC transacional idempotente que valida o usuário autenticado e não sobrescreve linhas existentes. A regra pura equivalente em `src/domain/budgets.ts` sustenta os testes de agregação, exclusões e isolamento.
+
+## Dashboard financeiro — Sprint 7
+
+A rota `/dashboard` permanece um Server Component dinâmico. Ela recebe somente o mês pela URL e delega a leitura a `src/services/reports/financial-dashboard-service.ts`, que valida a sessão, filtra novamente por `user_id` e consulta views `security_invoker`.
+
+O navegador recebe apenas o recorte necessário: resumo do mês e dos cinco anteriores, categorias do mês selecionado, contas ativas e no máximo cinco recorrências e cinco faturas por moeda. O serviço consulta cada moeda separadamente para que um grupo não esconda os próximos itens de outro e monta seções independentes para BRL, USD e EUR.
+
+As agregações de alto volume ocorrem no PostgreSQL. A interface renderiza gráficos acessíveis com HTML e CSS no servidor, sem biblioteca cliente nem carregamento do histórico bruto. `loading.tsx` oferece o estado de transição e `error.tsx` isola falhas inesperadas com tentativa segura de recarga.

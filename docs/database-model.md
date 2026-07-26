@@ -65,6 +65,17 @@ Transferências ficam fora naturalmente por usarem tabelas próprias. `public.mo
 
 `copy_previous_month_budgets` copia somente categorias ativas do contexto e moeda solicitados. A RPC valida `auth.uid()`, usa `search_path` vazio e `ON CONFLICT DO NOTHING`, tornando retries seguros e preservando valores já cadastrados no destino.
 
+## Visões do dashboard financeiro
+
+As quatro views da Sprint 7 são somente leitura e usam `security_invoker`, preservando as políticas RLS das tabelas de origem:
+
+- `public.financial_dashboard_monthly_summary`: agrega receitas, despesas de consumo, resultado, planejamento e percentual consumido por usuário, mês e moeda;
+- `public.financial_dashboard_expense_categories`: expõe o consumo do mês por categoria, contexto e moeda;
+- `public.financial_dashboard_upcoming_recurrences`: combina recorrências ativas com conta, categoria e moeda;
+- `public.financial_dashboard_invoices`: expõe faturas não pagas e deriva o status efetivo Vencida conforme `due_date`.
+
+O resumo mensal reutiliza `monthly_consumption`, portanto herda a exclusão de transferências e pagamentos técnicos e o reconhecimento das parcelas pela competência. Índices parciais cobrem receitas realizadas ativas e faturas não pagas. As permissões das views são revogadas de `anon` e concedidas explicitamente a `authenticated`.
+
 ## Integridade
 
 - moedas aceitas: BRL, USD e EUR;

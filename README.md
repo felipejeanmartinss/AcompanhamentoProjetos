@@ -1,6 +1,6 @@
 # MeuMoney
 
-Progressive Web App de gestão financeira pessoal. A feature atual acrescenta orçamento mensal por categoria, contexto e moeda à fundação financeira existente.
+Progressive Web App de gestão financeira pessoal. A feature atual transforma a página inicial privada em um dashboard financeiro mensal consolidado e separado por moeda.
 
 ## Stack
 
@@ -20,16 +20,16 @@ Progressive Web App de gestão financeira pessoal. A feature atual acrescenta or
 
 Configure no Supabase Auth as URLs permitidas `http://localhost:3000/**` e as URLs equivalentes da Vercel. Consulte [docs/local-setup.md](docs/local-setup.md).
 
-## Orçamento mensal
+## Dashboard financeiro
 
-- valores planejado, realizado, disponível e percentual consumido;
-- separação por mês, categoria, contexto Pessoal/Profissional e moeda;
-- despesas concluídas e ativas, sem transferências ou pagamentos técnicos;
-- compras no cartão reconhecidas pela competência de cada parcela;
-- cópia idempotente do orçamento do mês anterior;
-- valores inteiros, RLS e isolamento por usuário.
+- saldos atuais por conta, receitas, despesas de consumo e resultado mensal;
+- orçamento consumido, próximas recorrências e faturas não pagas;
+- evolução do mês selecionado e dos cinco anteriores;
+- distribuição das despesas por categoria;
+- seções independentes para BRL, USD e EUR, sem conversão implícita;
+- consultas agregadas no PostgreSQL, valores inteiros, RLS e isolamento por usuário.
 
-Cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial, investimentos e dashboard financeiro completo permanecem fora desta entrega.
+Cashback, milhas, juros rotativos, parcelamento de fatura, antecipação, conversão cambial e investimentos permanecem fora desta entrega.
 
 ## Qualidade
 
