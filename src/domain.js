@@ -16,6 +16,24 @@ const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const ratio = (numerator, denominator) =>
   denominator > 0 ? numerator / denominator - 1 : null;
 
+export function statusIsActive(status) {
+  const normalized = String(status || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return true;
+  return ![
+    "cancelad",
+    "distrat",
+    "rescind",
+    "recusad",
+    "rejeitad",
+    "excluid",
+    "inativ",
+  ].some((term) => normalized.includes(term));
+}
+
 export function monetaryCost(record, valueKey, rateKey, basisKey = "proposalNominal") {
   const explicit = finite(record[valueKey]);
   if (explicit) return explicit;
@@ -23,12 +41,13 @@ export function monetaryCost(record, valueKey, rateKey, basisKey = "proposalNomi
 }
 
 export function normalizeRecord(record) {
+  const status = String(record.status || "Realizada");
   return {
     id: String(record.id || crypto.randomUUID()),
     source: record.source || "import",
     project: String(record.project || "Empreendimento não informado"),
     unit: String(record.unit || ""),
-    status: String(record.status || "Realizada"),
+    status,
     approvalDate: record.approvalDate || "",
     channel: String(record.channel || "Não informado"),
     tableNominal: finite(record.tableNominal),
@@ -45,12 +64,14 @@ export function normalizeRecord(record) {
     budgetBonusValue: finite(record.budgetBonusValue),
     base100Factor: INITIAL_BASE100_FACTOR,
     scenario: String(record.scenario || "Realizado"),
-    active: record.active !== false,
+    active: record.source === "simulation"
+      ? record.active !== false
+      : record.active === false ? false : statusIsActive(status),
   };
 }
 
 export function calculateMetrics(records) {
-  const active = records.filter((record) => record.active !== false).map(normalizeRecord);
+  const active = records.map(normalizeRecord).filter((record) => record.active !== false);
   if (!active.length) return emptyMetrics();
 
   let nominalVgv = 0;
