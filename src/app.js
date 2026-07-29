@@ -90,8 +90,59 @@ function renderProjects() {
   state.selectedProject = filter.value;
 }
 
+function activeRecordsForProject(records) {
+  return recordsForProject(records).map(normalizeRecord).filter((record) => record.active);
+}
+
+function renderProductOverview() {
+  const products = groupMetrics(state.realized, "project");
+  const grid = $("#product-grid");
+  if (!products.length) {
+    grid.innerHTML = `
+      <div class="product-empty">
+        Importe uma base para visualizar o resumo das vendas ativas por produto.
+      </div>
+    `;
+    return;
+  }
+  grid.innerHTML = products.map((product) => `
+    <button
+      class="product-card ${state.selectedProject === product.label ? "selected" : ""}"
+      type="button"
+      data-project="${escapeHtml(product.label)}"
+      aria-pressed="${state.selectedProject === product.label}"
+    >
+      <div class="product-card-head">
+        <h3>${escapeHtml(product.label)}</h3>
+        <span class="open-label">Abrir resultado →</span>
+      </div>
+      <div class="product-kpis">
+        <div class="product-kpi">
+          <span>Vendas ativas</span>
+          <strong>${product.units}</strong>
+        </div>
+        <div class="product-kpi">
+          <span>VGV vendido</span>
+          <strong>${money.format(product.nominalVgv)}</strong>
+        </div>
+        <div class="product-kpi">
+          <span>Resultado VPL</span>
+          <strong class="${tone(product.npvResult)}">${formatMetric(product.npvResult, "percent")}</strong>
+        </div>
+        <div class="product-kpi">
+          <span>Resultado líquido</span>
+          <strong class="${tone(product.netCommercialResult)}">${formatMetric(product.netCommercialResult, "percent")}</strong>
+        </div>
+      </div>
+    </button>
+  `).join("");
+}
+
 function renderChannels() {
-  const rows = groupMetrics(recordsForProject(state.realized), "channel");
+  const rows = groupMetrics(
+    activeRecordsForProject(state.realized),
+    "channel",
+  );
   if (!rows.length) {
     $("#channel-analysis").className = "channel-list empty-state";
     $("#channel-analysis").textContent = "Importe uma base para visualizar os canais.";
@@ -112,11 +163,11 @@ function renderChannels() {
 }
 
 function renderQuality() {
-  const rows = recordsForProject(state.realized);
+  const rows = activeRecordsForProject(state.realized);
   const missingUnit = rows.filter((row) => !row.unit).length;
   const missingNpvReference = rows.filter((row) => !row.referenceNpv).length;
   $("#quality-panel").innerHTML = `
-    <div><span>Propostas realizadas</span><strong>${rows.length}</strong></div>
+    <div><span>Vendas ativas</span><strong>${rows.length}</strong></div>
     <div><span>Unidades sem identificação</span><strong>${missingUnit}</strong></div>
     <div><span>Registros sem referência VPL</span><strong>${missingNpvReference}</strong></div>
   `;
@@ -163,7 +214,10 @@ function renderFreshness() {
 
 function render() {
   renderProjects();
+  renderProductOverview();
   renderMetrics();
+  $("#comparison-context").textContent =
+    `${state.selectedProject === "Todos" ? "Todos os produtos" : state.selectedProject} · Realizado x Pro forma`;
   renderChannels();
   renderQuality();
   renderSimulations();
@@ -194,6 +248,14 @@ $("#open-simulation").addEventListener("click", () => $("#simulation-dialog").sh
 $("#project-filter").addEventListener("change", (event) => {
   state.selectedProject = event.target.value;
   render();
+});
+
+$("#product-grid").addEventListener("click", (event) => {
+  const card = event.target.closest("[data-project]");
+  if (!card) return;
+  state.selectedProject = card.dataset.project;
+  render();
+  $("#comparison-title").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 $("#import-form").addEventListener("submit", async (event) => {
