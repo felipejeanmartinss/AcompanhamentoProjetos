@@ -1,11 +1,13 @@
 import {
+  calculateMetrics,
+  calculationLine,
   compareMetrics,
   groupMetrics,
   monetaryCost,
   normalizeRecord,
-} from "./domain.js";
-import { parseNumber, readProposalFile } from "./importer.js";
-import { clearState, loadState, saveState } from "./store.js";
+} from "./domain.js?v=20260728-3";
+import { parseNumber, readProposalFile } from "./importer.js?v=20260728-3";
+import { clearState, loadState, saveState } from "./store.js?v=20260728-3";
 
 let state = loadState();
 
@@ -34,6 +36,7 @@ const metricDefinitions = [
   ["npvResult", "Resultado a VPL", "percent"],
   ["base100NpvResult", "Base 100 a VPL", "percent"],
   ["commercialCostRate", "Comissão + prêmio", "percent"],
+  ["commissionVariance", "Desvio de comissão", "money"],
   ["netCommercialResult", "Resultado líquido", "percent"],
 ];
 
@@ -62,7 +65,7 @@ function renderMetrics() {
   const cells = [
     '<div class="metric-head">Indicador</div>',
     '<div class="metric-head">Realizado</div>',
-    '<div class="metric-head">Pro forma</div>',
+    '<div class="metric-head">Após simulações</div>',
     '<div class="metric-head">Impacto</div>',
   ];
   for (const [key, label, type] of metricDefinitions) {
@@ -95,7 +98,19 @@ function activeRecordsForProject(records) {
 }
 
 function renderProductOverview() {
-  const products = groupMetrics(state.realized, "project");
+  const grouped = new Map();
+  for (const sourceRecord of state.realized) {
+    const record = normalizeRecord(sourceRecord);
+    grouped.set(record.project, [...(grouped.get(record.project) || []), record]);
+  }
+  const products = [...grouped.entries()]
+    .map(([label, rows]) => ({
+      label,
+      totalSales: rows.length,
+      activeSales: rows.filter((row) => row.active).length,
+      ...calculateMetrics(rows),
+    }))
+    .sort((a, b) => b.nominalVgv - a.nominalVgv);
   const grid = $("#product-grid");
   if (!products.length) {
     grid.innerHTML = `
@@ -119,7 +134,7 @@ function renderProductOverview() {
       <div class="product-kpis">
         <div class="product-kpi">
           <span>Vendas ativas</span>
-          <strong>${product.units}</strong>
+          <strong>${product.activeSales} <small>de ${product.totalSales}</small></strong>
         </div>
         <div class="product-kpi">
           <span>VGV vendido</span>
@@ -163,14 +178,80 @@ function renderChannels() {
 }
 
 function renderQuality() {
-  const rows = activeRecordsForProject(state.realized);
+  const allRows = recordsForProject(state.realized).map(normalizeRecord);
+  const rows = allRows.filter((record) => record.active);
   const missingUnit = rows.filter((row) => !row.unit).length;
   const missingNpvReference = rows.filter((row) => !row.referenceNpv).length;
   $("#quality-panel").innerHTML = `
+    <div><span>Vendas importadas</span><strong>${allRows.length}</strong></div>
     <div><span>Vendas ativas</span><strong>${rows.length}</strong></div>
+    <div><span>Vendas inativas</span><strong>${allRows.length - rows.length}</strong></div>
     <div><span>Unidades sem identificação</span><strong>${missingUnit}</strong></div>
     <div><span>Registros sem referência VPL</span><strong>${missingNpvReference}</strong></div>
   `;
+}
+
+function calculationRows() {
+  return recordsForProject(state.realized)
+    .map(calculationLine)
+    .sort((a, b) => String(b.approvalDate).localeCompare(String(a.approvalDate)));
+}
+
+function renderCalculationHistory() {
+  const rows = calculationRows();
+  const activeRows = rows.filter((row) => row.active);
+  $("#calculation-count").textContent = rows.length
+    ? `${activeRows.length} vendas ativas de ${rows.length} importadas. A tabela exibe até 150 linhas; o CSV contém todo o histórico.`
+    : "Importe uma base para visualizar a memória de cálculo de cada venda.";
+  if (!rows.length) {
+    $("#calculation-table").innerHTML =
+      '<tr class="empty-row"><td colspan="11">Nenhuma venda importada.</td></tr>';
+    return;
+  }
+  $("#calculation-table").innerHTML = rows.slice(0, 150).map((row) => `
+    <tr class="${row.active ? "" : "inactive-row"}">
+      <td>
+        <strong>${escapeHtml(row.id)}</strong>
+        <span>${escapeHtml(row.project)} · ${escapeHtml(row.unit)}</span>
+      </td>
+      <td><strong>${row.active ? "Ativa" : "Inativa"}</strong><span>${escapeHtml(row.proposalStatus || row.status)}${row.contractStatus ? ` · ${escapeHtml(row.contractStatus)}` : ""}</span></td>
+      <td>${fullMoney.format(row.tableNominal)}</td>
+      <td>${formatMetric(row.gorduraRate, "percent")}</td>
+      <td>${fullMoney.format(row.referenceNominal)}</td>
+      <td>${fullMoney.format(row.referenceNpv)}</td>
+      <td>${fullMoney.format(row.proposalNpv)}</td>
+      <td>${fullMoney.format(row.actualCommercialCost)}</td>
+      <td>${fullMoney.format(row.budgetCommercialCost)}</td>
+      <td class="${tone(-row.commissionVariance)}">${formatMetric(row.commissionVariance, "money", true)}</td>
+      <td class="${tone(row.netCommercialResult)}">${formatMetric(row.netCommercialResult, "percent")}</td>
+    </tr>
+  `).join("");
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function exportCalculationHistory() {
+  const headers = [
+    "Proposta", "Produto", "Unidade", "Status Proposta", "Status Contrato", "Ativa",
+    "Valor Tabela", "Gordura", "BP Nominal", "Tabela VPL", "BP VPL",
+    "Proposta Nominal", "Proposta VPL", "Comissao Real", "Comissao Base 4%",
+    "Desvio Comissao", "Resultado Nominal", "Resultado VPL", "Resultado Liquido",
+  ];
+  const rows = calculationRows().map((row) => [
+    row.id, row.project, row.unit, row.proposalStatus, row.contractStatus,
+    row.active ? "Sim" : "Não", row.tableNominal, row.gorduraRate,
+    row.referenceNominal, row.tableNpv, row.referenceNpv, row.proposalNominal,
+    row.proposalNpv, row.actualCommercialCost, row.budgetCommercialCost,
+    row.commissionVariance, row.nominalResult, row.npvResult, row.netCommercialResult,
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(";")).join("\n");
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+  link.download = `historico-calculos-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 function renderSimulations() {
@@ -220,6 +301,7 @@ function render() {
     `${state.selectedProject === "Todos" ? "Todos os produtos" : state.selectedProject} · Realizado x Pro forma`;
   renderChannels();
   renderQuality();
+  renderCalculationHistory();
   renderSimulations();
   renderFreshness();
   saveState(state);
@@ -257,6 +339,8 @@ $("#product-grid").addEventListener("click", (event) => {
   render();
   $("#comparison-title").scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
+$("#export-calculations").addEventListener("click", exportCalculationHistory);
 
 $("#import-form").addEventListener("submit", async (event) => {
   event.preventDefault();
