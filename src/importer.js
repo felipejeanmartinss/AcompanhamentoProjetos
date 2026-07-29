@@ -1,21 +1,24 @@
-import { INITIAL_BASE100_FACTOR, normalizeRecord } from "./domain.js";
+import { INITIAL_BASE100_FACTOR, normalizeRecord } from "./domain.js?v=20260728-3";
 
 const aliases = {
   id: ["id proposta", "proposta", "codigo proposta", "numero proposta", "id"],
   project: ["empreendimento", "projeto", "nome empreendimento"],
   unit: ["pep", "unidade", "codigo unidade", "apto", "apartamento"],
   status: ["status", "situacao", "status proposta"],
+  proposalStatus: ["status proposta", "situacao proposta"],
+  contractStatus: ["status contrato", "situacao contrato"],
   approvalDate: ["data aprovacao", "data da aprovacao", "data venda", "data contrato"],
   channel: ["canal", "canal venda", "empresa vendas", "imobiliaria"],
   tableNominal: ["tabela nominal", "valor tabela", "preco tabela", "tabela"],
   referenceNominal: ["bp nominal", "valor bp", "preco meta", "referencia nominal"],
-  tableNpv: ["tabela vpl", "vpl tabela", "tabela vp"],
+  tableNpv: ["tabela vpl", "valor tabela vpl", "vpl tabela", "tabela vp"],
   referenceNpv: ["bp vpl", "vpl bp", "referencia vpl", "preco meta vpl"],
   proposalNominal: ["proposta nominal", "valor proposta", "valor venda", "vgv"],
-  proposalNpv: ["proposta vpl", "vpl proposta", "vpl venda", "valor presente"],
-  commissionValue: ["comissao valor", "valor comissao", "comissao r"],
+  proposalNpv: ["proposta vpl", "valor proposta vpl", "vpl proposta", "vpl venda", "valor presente"],
+  gorduraRate: ["gordura", "percentual gordura"],
+  commissionValue: ["total comissao", "comissao valor", "valor comissao", "comissao r"],
   commissionRate: ["comissao percentual", "percentual comissao", "comissao"],
-  bonusValue: ["premio", "valor premio", "premiacao"],
+  bonusValue: ["total premio", "premio", "valor premio", "premiacao"],
   budgetCommissionRate: ["comissao orcada", "percentual comissao orcada"],
   budgetCommissionValue: ["valor comissao orcada"],
   budgetBonusValue: ["premio orcado", "valor premio orcado"],
@@ -78,36 +81,52 @@ export function rowsToRecords(rows) {
     warnings.push("Referência VPL ausente; será usada a referência nominal.");
   }
 
-  const records = rows
-    .filter((row) => Object.values(row).some((value) => value !== "" && value != null))
+  const dataRows = rows.filter((row) => {
+    const id = mapping.id ? row[mapping.id] : "";
+    const unit = mapping.unit ? row[mapping.unit] : "";
+    return String(id ?? "").trim() || String(unit ?? "").trim();
+  });
+  const excludedRows = rows.length - dataRows.length;
+  if (excludedRows) {
+    warnings.push(`${excludedRows} linha(s) de totalização ou rodapé foram ignoradas.`);
+  }
+
+  const records = dataRows
     .map((row, index) => {
       const get = (field) => mapping[field] ? row[mapping[field]] : undefined;
       const proposalNominal = parseNumber(get("proposalNominal"));
       const proposalNpv = parseNumber(get("proposalNpv")) || proposalNominal;
       const tableNominal = parseNumber(get("tableNominal"));
-      const referenceNominal = parseNumber(get("referenceNominal")) || tableNominal;
+      const gorduraRate = parseNumber(get("gorduraRate"));
+      const explicitReferenceNominal = parseNumber(get("referenceNominal"));
+      const referenceNominal = explicitReferenceNominal || tableNominal * (1 - gorduraRate);
       const tableNpv = parseNumber(get("tableNpv")) || tableNominal;
-      const referenceNpv =
-        parseNumber(get("referenceNpv")) || tableNpv || referenceNominal;
+      const explicitReferenceNpv = parseNumber(get("referenceNpv"));
+      const referenceNpv = explicitReferenceNpv || tableNpv * (1 - gorduraRate);
       const commissionRaw = parseNumber(get("commissionRate"));
 
       return normalizeRecord({
         id: get("id") || `IMP-${index + 1}`,
         project: get("project"),
         unit: get("unit"),
-        status: get("status"),
+        status: get("proposalStatus") || get("status"),
+        proposalStatus: get("proposalStatus") || get("status"),
+        contractStatus: get("contractStatus"),
         approvalDate: get("approvalDate"),
         channel: get("channel"),
         tableNominal,
         referenceNominal,
         tableNpv,
         referenceNpv,
+        gorduraRate,
         proposalNominal,
         proposalNpv,
         commissionValue: parseNumber(get("commissionValue")),
         commissionRate: commissionRaw > 1 ? commissionRaw / 100 : commissionRaw,
         bonusValue: parseNumber(get("bonusValue")),
-        budgetCommissionRate: parseNumber(get("budgetCommissionRate")),
+        budgetCommissionRate: mapping.budgetCommissionRate
+          ? parseNumber(get("budgetCommissionRate"))
+          : undefined,
         budgetCommissionValue: parseNumber(get("budgetCommissionValue")),
         budgetBonusValue: parseNumber(get("budgetBonusValue")),
         base100Factor: INITIAL_BASE100_FACTOR,
