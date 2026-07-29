@@ -14,9 +14,9 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260728-3" />
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script type="module" src="./src/app.js"></script>
+    <script type="module" src="./src/app.js?v=20260728-3"></script>
   </head>
   <body>
     <header class="topbar">
@@ -81,8 +81,8 @@
         </div>
         <div class="metric-grid" id="metrics"></div>
         <p class="method-note">
-          Indicadores percentuais usam a razão entre valores totais. Nesta versão,
-          o fator Base 100 é fixo em 1.
+          “Após simulações” representa as vendas ativas importadas somadas às
+          propostas simuladas que estiverem ligadas.
         </p>
       </section>
 
@@ -106,12 +106,57 @@
             </div>
           </div>
           <div id="quality-panel" class="quality-list">
+            <div><span>Vendas importadas</span><strong>0</strong></div>
             <div><span>Vendas ativas</span><strong>0</strong></div>
+            <div><span>Vendas inativas</span><strong>0</strong></div>
             <div><span>Unidades sem identificação</span><strong>0</strong></div>
             <div><span>Registros sem referência VPL</span><strong>0</strong></div>
           </div>
           <button class="button ghost danger" id="clear-data">Limpar dados locais</button>
         </article>
+      </section>
+
+      <section class="panel calculations-panel" id="calculos">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Auditoria</p>
+            <h2>Histórico dos cálculos</h2>
+          </div>
+          <button class="button ghost" id="export-calculations">Baixar histórico CSV</button>
+        </div>
+        <div class="formula-strip">
+          <span><strong>BP nominal</strong> = Tabela × (1 − Gordura)</span>
+          <span><strong>BP VPL</strong> = Tabela VPL × (1 − Gordura)</span>
+          <span><strong>Comissão-base</strong> = 4% × BP nominal</span>
+          <span><strong>Resultado líquido</strong> = Receita líquida ÷ BP líquido − 1</span>
+        </div>
+        <p class="method-note" id="calculation-count">
+          Importe uma base para visualizar a memória de cálculo de cada venda.
+        </p>
+        <div class="table-wrap">
+          <table class="calculation-table">
+            <thead>
+              <tr>
+                <th>Venda / produto</th>
+                <th>Status</th>
+                <th>Tabela</th>
+                <th>Gordura</th>
+                <th>BP nominal</th>
+                <th>BP VPL</th>
+                <th>Proposta VPL</th>
+                <th>Comissão real</th>
+                <th>Comissão 4%</th>
+                <th>Desvio comissão</th>
+                <th>Resultado líquido</th>
+              </tr>
+            </thead>
+            <tbody id="calculation-table">
+              <tr class="empty-row">
+                <td colspan="11">Nenhuma venda importada.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section class="panel simulations-panel" id="simulacoes">
