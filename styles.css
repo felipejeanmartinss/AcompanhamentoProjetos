@@ -191,6 +191,7 @@ h2 { margin: 0; font-size: 24px; }
 }
 .product-kpi span { display: block; color: var(--muted); font-size: 11px; }
 .product-kpi strong { display: block; margin-top: 3px; font: 700 17px/1.2 "Manrope", sans-serif; }
+.product-kpi small { color: var(--muted); font: 600 11px/1 "DM Sans", sans-serif; }
 .product-empty {
   grid-column: 1 / -1;
   padding: 28px;
@@ -236,6 +237,24 @@ h2 { margin: 0; font-size: 24px; }
 .quality-list > div { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--line); }
 .quality-list span { color: var(--muted); }
 .simulations-panel { margin-top: 24px; }
+.calculations-panel { margin-top: 24px; }
+.formula-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.formula-strip span {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+.formula-strip strong { color: var(--green); display: block; }
+.calculation-table { min-width: 1420px; }
+.calculation-table td { white-space: nowrap; }
+.calculation-table .inactive-row { opacity: .58; background: #f7f2f2; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 820px; }
 th { color: var(--muted); font-size: 11px; text-align: left; text-transform: uppercase; letter-spacing: .07em; }
@@ -273,6 +292,7 @@ dialog::backdrop { background: rgba(14, 27, 20, .58); backdrop-filter: blur(3px)
   .hero { display: grid; }
   .hero-actions { min-width: 0; }
   .two-columns { grid-template-columns: 1fr; }
+  .formula-strip { grid-template-columns: repeat(2, 1fr); }
   .metric-grid { grid-template-columns: 1.15fr repeat(3, minmax(100px, 1fr)); overflow-x: auto; }
   .form-grid { grid-template-columns: 1fr; }
 }
@@ -282,5 +302,6 @@ dialog::backdrop { background: rgba(14, 27, 20, .58); backdrop-filter: blur(3px)
   .brand > span:last-child { display: none; }
   .comparison-panel, .panel { padding: 20px; }
   .dialog-actions { flex-direction: column-reverse; }
+  .formula-strip { grid-template-columns: 1fr; }
   .dialog-actions .button { width: 100%; }
 }
