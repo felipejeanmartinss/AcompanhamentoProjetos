@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateMetrics, compareMetrics, normalizeRecord } from "../src/domain.js";
+import {
+  calculateMetrics,
+  compareMetrics,
+  normalizeRecord,
+  statusIsActive,
+} from "../src/domain.js";
 import { detectColumns, parseNumber, rowsToRecords } from "../src/importer.js";
 
 const sale = normalizeRecord({
@@ -39,6 +44,23 @@ test("recalcula pro forma com realizado e simulações", () => {
   assert.equal(comparison.realized.units, 1);
   assert.equal(comparison.proForma.units, 2);
   assert.ok(comparison.proForma.npvResult > comparison.realized.npvResult);
+});
+
+test("considera somente vendas ativas no resumo do produto", () => {
+  assert.equal(statusIsActive("Aprovada"), true);
+  assert.equal(statusIsActive("Contrato assinado"), true);
+  assert.equal(statusIsActive("Cancelada"), false);
+  assert.equal(statusIsActive("Distrato concluído"), false);
+
+  const cancelled = normalizeRecord({
+    ...sale,
+    id: "V2",
+    unit: "AP0902",
+    status: "Cancelada",
+  });
+  const metrics = calculateMetrics([sale, cancelled]);
+  assert.equal(metrics.units, 1);
+  assert.equal(metrics.nominalVgv, 950_000);
 });
 
 test("interpreta números brasileiros e percentuais", () => {
