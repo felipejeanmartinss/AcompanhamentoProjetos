@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Painel de acompanhamento comercial de empreendimentos com importação de propostas e simulação pro forma."
+    />
+    <title>Acompanhamento Comercial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+    <script type="module" src="./src/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#resumo" aria-label="Acompanhamento Comercial">
+        <span class="brand-mark">AC</span>
+        <span>Acompanhamento <strong>Comercial</strong></span>
+      </a>
+      <nav aria-label="Navegação principal">
+        <a class="active" href="#resumo">Resumo</a>
+        <a href="#analises">Análises</a>
+        <a href="#simulacoes">Simulações</a>
+      </nav>
+      <button class="button primary" id="open-import">Importar base</button>
+    </header>
+
+    <main>
+      <section class="hero" id="resumo">
+        <div>
+          <p class="eyebrow">Visão comercial consolidada</p>
+          <h1>Resultado do empreendimento, sem perder o detalhe da proposta.</h1>
+          <p class="hero-copy">
+            Compare o realizado com novas negociações e veja o efeito em preço, VPL,
+            custo comercial e resultado líquido.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <label class="field compact">
+            <span>Empreendimento</span>
+            <select id="project-filter">
+              <option value="Todos">Todos os empreendimentos</option>
+            </select>
+          </label>
+          <div class="freshness">
+            <span class="status-dot"></span>
+            <span id="last-import">Nenhuma base importada</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="comparison-panel" aria-labelledby="comparison-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Realizado x Pro forma</p>
+            <h2 id="comparison-title">Impacto consolidado</h2>
+          </div>
+          <p id="active-simulations">0 simulações ativas</p>
+        </div>
+        <div class="metric-grid" id="metrics"></div>
+        <p class="method-note">
+          Indicadores percentuais usam a razão entre valores totais. Nesta versão,
+          o fator Base 100 é fixo em 1.
+        </p>
+      </section>
+
+      <section class="two-columns" id="analises">
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Diagnóstico</p>
+              <h2>Resultado por canal</h2>
+            </div>
+          </div>
+          <div id="channel-analysis" class="channel-list empty-state">
+            Importe uma base para visualizar os canais.
+          </div>
+        </article>
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Qualidade da base</p>
+              <h2>Conciliação da importação</h2>
+            </div>
+          </div>
+          <div id="quality-panel" class="quality-list">
+            <div><span>Propostas realizadas</span><strong>0</strong></div>
+            <div><span>Unidades sem identificação</span><strong>0</strong></div>
+            <div><span>Registros sem referência VPL</span><strong>0</strong></div>
+          </div>
+          <button class="button ghost danger" id="clear-data">Limpar dados locais</button>
+        </article>
+      </section>
+
+      <section class="panel simulations-panel" id="simulacoes">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Simulador</p>
+            <h2>Novas propostas</h2>
+          </div>
+          <button class="button secondary" id="open-simulation">Nova simulação</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Proposta</th>
+                <th>Empreendimento / unidade</th>
+                <th>VGV nominal</th>
+                <th>Resultado VPL</th>
+                <th>Custo comercial</th>
+                <th>Ativa</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="simulation-table">
+              <tr class="empty-row">
+                <td colspan="7">Adicione uma proposta para calcular o impacto pro forma.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="import-dialog">
+      <form method="dialog" class="dialog-card" id="import-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Atualização da base</p>
+            <h2>Importar propostas realizadas</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <p>
+          Selecione a base geral em Excel ou CSV. Os cabeçalhos conhecidos serão
+          associados automaticamente.
+        </p>
+        <label class="drop-zone" for="proposal-file">
+          <span class="upload-icon">↑</span>
+          <strong>Escolher arquivo</strong>
+          <span>XLSX, XLS ou CSV</span>
+          <input id="proposal-file" type="file" accept=".xlsx,.xls,.csv" required />
+        </label>
+        <div id="import-feedback" class="feedback" hidden></div>
+        <label class="check">
+          <input id="replace-import" type="checkbox" checked />
+          <span>Substituir a base realizada existente</span>
+        </label>
+        <div class="dialog-actions">
+          <a class="button ghost" href="./public/modelo-importacao.csv" download>Baixar modelo CSV</a>
+          <button class="button primary" type="submit">Processar base</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="simulation-dialog">
+      <form method="dialog" class="dialog-card wide" id="simulation-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Cenário pro forma</p>
+            <h2>Adicionar proposta</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>ID da proposta</span><input name="id" required /></label>
+          <label class="field"><span>Empreendimento</span><input name="project" required /></label>
+          <label class="field"><span>Unidade / PEP</span><input name="unit" required /></label>
+          <label class="field"><span>Canal</span><input name="channel" /></label>
+          <label class="field"><span>Referência nominal</span><input name="referenceNominal" inputmode="decimal" required /></label>
+          <label class="field"><span>Proposta nominal</span><input name="proposalNominal" inputmode="decimal" required /></label>
+          <label class="field"><span>Referência VPL</span><input name="referenceNpv" inputmode="decimal" required /></label>
+          <label class="field"><span>Proposta VPL</span><input name="proposalNpv" inputmode="decimal" required /></label>
+          <label class="field"><span>Comissão (%)</span><input name="commissionRate" inputmode="decimal" value="5" /></label>
+          <label class="field"><span>Prêmio (R$)</span><input name="bonusValue" inputmode="decimal" value="0" /></label>
+          <label class="field"><span>Comissão orçada (%)</span><input name="budgetCommissionRate" inputmode="decimal" value="5" /></label>
+          <label class="field"><span>Prêmio orçado (R$)</span><input name="budgetBonusValue" inputmode="decimal" value="0" /></label>
+        </div>
+        <p class="method-note">O fator Base 100 será aplicado como 1 nesta versão.</p>
+        <div class="dialog-actions">
+          <button class="button ghost" value="cancel">Cancelar</button>
+          <button class="button primary" type="submit" value="default">Adicionar ao pro forma</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
