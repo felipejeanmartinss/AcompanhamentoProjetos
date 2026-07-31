@@ -1,6 +1,6 @@
 {
   "name": "acompanhamento-projetos",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,5 @@
     "check": "node --check src/app.js && node --check src/domain.js && node --check src/importer.js && node --check src/store.js",
     "validate": "npm run check && npm test"
   },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": { "node": ">=20" }
 }

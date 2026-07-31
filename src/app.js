@@ -1,428 +1,160 @@
-import {
-  calculateMetrics,
-  calculationLine,
-  compareMetrics,
-  groupMetrics,
-  monetaryCost,
-  normalizeRecord,
-} from "./domain.js?v=20260728-3";
-import { parseNumber, readProposalFile } from "./importer.js?v=20260728-3";
-import { clearState, loadState, saveState } from "./store.js?v=20260728-3";
+import { calculateMetrics, calculationLine, compareMetrics, projectPortfolio, statusTone, unitKey } from "./domain.js";
+import { parseNumber, readDatasetFile, reconcile } from "./importer.js";
+import { clearState, loadState, saveState } from "./store.js";
 
-let state = loadState();
-
+let state = reconcile(loadState());
+let pendingImport = "";
 const $ = (selector) => document.querySelector(selector);
-const money = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-const fullMoney = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  maximumFractionDigits: 0,
-});
-const percent = new Intl.NumberFormat("pt-BR", {
-  style: "percent",
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+const money = new Intl.NumberFormat("pt-BR", { style:"currency", currency:"BRL", notation:"compact", maximumFractionDigits:1 });
+const fullMoney = new Intl.NumberFormat("pt-BR", { style:"currency", currency:"BRL", maximumFractionDigits:0 });
+const pct = new Intl.NumberFormat("pt-BR", { style:"percent", minimumFractionDigits:1, maximumFractionDigits:1 });
+const num = new Intl.NumberFormat("pt-BR");
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" })[c]);
+const fmtPct = (value) => value == null ? "—" : pct.format(value);
+const tone = (value) => value == null ? "" : value < -0.00001 ? "negative" : value > 0.00001 ? "positive" : "";
+const currentId = () => state.selectedProject || projectPortfolio(state)[0]?.id || "";
+const projectRows = (rows) => { const id=currentId(); return id ? rows.filter((r)=>(r.projectCode||r.project)===id) : rows; };
 
-const metricDefinitions = [
-  ["units", "Unidades", "number"],
-  ["nominalVgv", "VGV nominal", "money"],
-  ["nominalResult", "Resultado nominal", "percent"],
-  ["npvResult", "Resultado a VPL", "percent"],
-  ["base100NpvResult", "Base 100 a VPL", "percent"],
-  ["commercialCostRate", "Comissão + prêmio", "percent"],
-  ["commissionVariance", "Desvio de comissão", "money"],
-  ["netCommercialResult", "Resultado líquido", "percent"],
-];
-
-function recordsForProject(records) {
-  if (state.selectedProject === "Todos") return records;
-  return records.filter((record) => record.project === state.selectedProject);
+const views = {
+  portfolio:["Visão comercial","Carteira de produtos"], detail:["Produto selecionado","Detalhe do empreendimento"],
+  history:["Auditoria","Histórico analítico"], simulator:["Decisão comercial","Simulador de proposta"], settings:["Administração","Configurações e importações"],
+};
+function showView(view) {
+  state.view=view; $$(".view").forEach((el)=>el.classList.toggle("active",el.id===`view-${view}`));
+  $$(".nav-item").forEach((el)=>el.classList.toggle("active",el.dataset.view===view));
+  $("#breadcrumb").textContent=views[view][0]; $("#page-title").textContent=views[view][1];
+  render(); window.scrollTo({top:0,behavior:"smooth"});
 }
+function toast(message) { const el=$("#toast"); el.textContent=message; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2500); }
 
-function formatMetric(value, type, impact = false) {
-  if (value === null || Number.isNaN(value)) return "—";
-  if (type === "money") return `${impact && value > 0 ? "+" : ""}${money.format(value)}`;
-  if (type === "percent") return `${impact && value > 0 ? "+" : ""}${percent.format(value)}`;
-  return `${impact && value > 0 ? "+" : ""}${Math.round(value)}`;
+function renderProjectSelect() {
+  const products=projectPortfolio(state); const select=$("#project-select");
+  select.innerHTML='<option value="">Todos os produtos</option>'+products.map((p)=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
+  select.value=state.selectedProject;
 }
-
-function tone(value) {
-  if (value === null || Math.abs(value) < 0.00001) return "";
-  return value > 0 ? "positive" : "negative";
+function renderPortfolio() {
+  let products=projectPortfolio(state); const sort=$("#portfolio-sort").value;
+  products.sort((a,b)=>sort==="name"?a.name.localeCompare(b.name):sort==="sales"?b.metrics.units-a.metrics.units:sort==="result"?(b.metrics.realNpvResult??-99)-(a.metrics.realNpvResult??-99):sort==="target"?(b.targetAchievement??-1)-(a.targetAchievement??-1):b.metrics.nominalVgv-a.metrics.nominalVgv);
+  $("#portfolio-count").textContent=`${products.length} produto${products.length===1?"":"s"}`;
+  $("#product-grid").innerHTML=products.length?products.map((p)=>`
+    <button class="product-card" data-open-project="${escapeHtml(p.id)}">
+      <div class="card-head"><div><span class="product-code">${escapeHtml(p.code||"PRODUTO")}</span><h3>${escapeHtml(p.name)}</h3></div><span class="arrow">→</span></div>
+      <div class="sales-line"><strong>${num.format(p.metrics.units)}</strong> vendas <span>de ${num.format(p.totalUnits||0)} unidades</span></div>
+      <div class="progress"><i style="width:${Math.min(100,p.totalUnits?p.metrics.units/p.totalUnits*100:0)}%"></i></div>
+      <div class="card-kpis"><div><span>VGV vendido</span><strong>${money.format(p.metrics.nominalVgv)}</strong></div><div><span>Real VPL</span><strong class="${tone(p.metrics.realNpvResult)}">${fmtPct(p.metrics.realNpvResult)}</strong></div><div><span>Estoque</span><strong>${num.format(p.available)}</strong></div><div><span>Atingimento BP</span><strong>${fmtPct(p.targetAchievement)}</strong></div></div>
+    </button>`).join(""):'<div class="empty-card">Importe as bases em Configurações para visualizar a carteira.</div>';
 }
-
-function renderMetrics() {
-  const comparison = compareMetrics(
-    recordsForProject(state.realized),
-    recordsForProject(state.simulations.filter((item) => item.active)),
-  );
-  const cells = [
-    '<div class="metric-head">Indicador</div>',
-    '<div class="metric-head">Realizado</div>',
-    '<div class="metric-head">Após simulações</div>',
-    '<div class="metric-head">Impacto</div>',
-  ];
-  for (const [key, label, type] of metricDefinitions) {
-    cells.push(`<div class="metric-label">${label}</div>`);
-    cells.push(`<div class="metric-cell">${formatMetric(comparison.realized[key], type)}</div>`);
-    cells.push(`<div class="metric-cell">${formatMetric(comparison.proForma[key], type)}</div>`);
-    cells.push(
-      `<div class="metric-cell ${tone(comparison.impact[key])}">${formatMetric(comparison.impact[key], type, true)}</div>`,
-    );
-  }
-  $("#metrics").innerHTML = cells.join("");
-}
-
-function renderProjects() {
-  const projects = [...new Set([...state.realized, ...state.simulations].map((row) => row.project))]
-    .filter(Boolean)
-    .sort();
-  const filter = $("#project-filter");
-  filter.innerHTML = [
-    '<option value="Todos">Todos os empreendimentos</option>',
-    ...projects.map((project) =>
-      `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`),
+function kpi(label,value,detail="",className=""){return `<div class="kpi"><span>${label}</span><strong class="${className}">${value}</strong><small>${detail}</small></div>`;}
+function renderDetail() {
+  const product=projectPortfolio(state).find((p)=>p.id===currentId());
+  if(!product){$("#project-header").className="project-header empty-card";$("#project-header").textContent="Selecione um produto na carteira.";$("#project-kpis").innerHTML="";$("#unit-matrix").innerHTML="";return;}
+  $("#project-header").className="project-header";
+  $("#project-header").innerHTML=`<div><p class="eyebrow">${escapeHtml(product.code)}</p><h2>${escapeHtml(product.name)}</h2></div><div class="project-facts"><span>Lançamento <strong>${escapeHtml(product.launchDate||"—")}</strong></span><span>Entrega <strong>${escapeHtml(product.deliveryDate||"—")}</strong></span><span>VSO <strong>${fmtPct(product.totalUnits?product.metrics.units/product.totalUnits:null)}</strong></span></div>`;
+  $("#project-kpis").innerHTML=[
+    kpi("Vendas",num.format(product.metrics.units),`de ${product.totalUnits||0} unidades`),
+    kpi("VGV vendido",money.format(product.metrics.nominalVgv),"vendas ativas"),
+    kpi("Resultado nominal",fmtPct(product.metrics.nominalResult),"versus BP",tone(product.metrics.nominalResult)),
+    kpi("Resultado real",fmtPct(product.metrics.realNominalResult),"líquido de custos",tone(product.metrics.realNominalResult)),
+    kpi("Resultado real VPL",fmtPct(product.metrics.realNpvResult),"indicador principal",tone(product.metrics.realNpvResult)),
+    kpi("Disponíveis",num.format(product.available),"estoque atual"),
   ].join("");
-  filter.value = projects.includes(state.selectedProject) ? state.selectedProject : "Todos";
-  state.selectedProject = filter.value;
+  const units=projectRows(state.units);
+  const blocks=[...new Set(units.map((u)=>u.block||"Único"))];
+  $("#unit-matrix").innerHTML=units.length?blocks.map((block)=>{
+    const rows=units.filter((u)=>(u.block||"Único")===block).sort((a,b)=>Number(b.floor)-Number(a.floor)||String(a.stack).localeCompare(String(b.stack)));
+    return `<div class="matrix-block"><h3>${escapeHtml(block)}</h3><div class="unit-grid">${rows.map((u)=>`<button class="unit-cell ${statusTone(u.status,u.exchange)}" data-unit="${escapeHtml(u.pep)}"><strong>${escapeHtml(u.unit||u.pep)}</strong><span>${escapeHtml(u.category)}</span><small>${u.area?`${num.format(u.area)} m²`:""}</small></button>`).join("")}</div></div>`;
+  }).join(""):'<div class="empty-card">Importe Tabela Vigente & Disponibilidade para montar a matriz.</div>';
 }
-
-function activeRecordsForProject(records) {
-  return recordsForProject(records).map(normalizeRecord).filter((record) => record.active);
+function renderUnitDetail(pep) {
+  const unit=state.units.find((u)=>unitKey(u.pep)===unitKey(pep)); if(!unit)return;
+  $("#unit-detail").innerHTML=`<p class="eyebrow">${escapeHtml(unit.block||"Unidade")}</p><h2>${escapeHtml(unit.unit||unit.pep)}</h2><span class="status-pill ${statusTone(unit.status,unit.exchange)}">${escapeHtml(unit.exchange?"Permuta":unit.status)}</span>
+  <dl><div><dt>PEP</dt><dd>${escapeHtml(unit.pep)}</dd></div><div><dt>Categoria</dt><dd>${escapeHtml(unit.category)}</dd></div><div><dt>Área</dt><dd>${unit.area?`${num.format(unit.area)} m²`:"—"}</dd></div><div><dt>Tabela</dt><dd>${fullMoney.format(unit.tableNominal)}</dd></div><div><dt>BP nominal</dt><dd>${fullMoney.format(unit.tableNominal*(1-unit.gorduraRate))}</dd></div><div><dt>Base 100</dt><dd>1,000</dd></div></dl>
+  <button class="button primary" data-simulate-unit="${escapeHtml(unit.pep)}" ${statusTone(unit.status,unit.exchange)!=="available"?"disabled":""}>Simular esta unidade</button>`;
 }
-
-function renderProductOverview() {
-  const grouped = new Map();
-  for (const sourceRecord of state.realized) {
-    const record = normalizeRecord(sourceRecord);
-    grouped.set(record.project, [...(grouped.get(record.project) || []), record]);
-  }
-  const products = [...grouped.entries()]
-    .map(([label, rows]) => ({
-      label,
-      totalSales: rows.length,
-      activeSales: rows.filter((row) => row.active).length,
-      ...calculateMetrics(rows),
-    }))
-    .sort((a, b) => b.nominalVgv - a.nominalVgv);
-  const grid = $("#product-grid");
-  if (!products.length) {
-    grid.innerHTML = `
-      <div class="product-empty">
-        Importe uma base para visualizar o resumo das vendas ativas por produto.
-      </div>
-    `;
-    return;
-  }
-  grid.innerHTML = products.map((product) => `
-    <button
-      class="product-card ${state.selectedProject === product.label ? "selected" : ""}"
-      type="button"
-      data-project="${escapeHtml(product.label)}"
-      aria-pressed="${state.selectedProject === product.label}"
-    >
-      <div class="product-card-head">
-        <h3>${escapeHtml(product.label)}</h3>
-        <span class="open-label">Abrir resultado →</span>
-      </div>
-      <div class="product-kpis">
-        <div class="product-kpi">
-          <span>Vendas ativas</span>
-          <strong>${product.activeSales} <small>de ${product.totalSales}</small></strong>
-        </div>
-        <div class="product-kpi">
-          <span>VGV vendido</span>
-          <strong>${money.format(product.nominalVgv)}</strong>
-        </div>
-        <div class="product-kpi">
-          <span>Resultado VPL</span>
-          <strong class="${tone(product.npvResult)}">${formatMetric(product.npvResult, "percent")}</strong>
-        </div>
-        <div class="product-kpi">
-          <span>Resultado líquido</span>
-          <strong class="${tone(product.netCommercialResult)}">${formatMetric(product.netCommercialResult, "percent")}</strong>
-        </div>
-      </div>
-    </button>
-  `).join("");
-}
-
-function renderChannels() {
-  const rows = groupMetrics(
-    activeRecordsForProject(state.realized),
-    "channel",
-  );
-  if (!rows.length) {
-    $("#channel-analysis").className = "channel-list empty-state";
-    $("#channel-analysis").textContent = "Importe uma base para visualizar os canais.";
-    return;
-  }
-  const max = Math.max(...rows.map((row) => row.nominalVgv), 1);
-  $("#channel-analysis").className = "channel-list";
-  $("#channel-analysis").innerHTML = rows.slice(0, 7).map((row) => `
-    <div class="channel-row">
-      <div class="channel-label">
-        <strong>${escapeHtml(row.label)}</strong>
-        <span>${row.units} un. · ${money.format(row.nominalVgv)}</span>
-      </div>
-      <div class="bar-track"><div class="bar" style="width:${Math.max(4, row.nominalVgv / max * 100)}%"></div></div>
-      <div class="channel-result ${tone(row.npvResult)}">${formatMetric(row.npvResult, "percent")}</div>
-    </div>
-  `).join("");
-}
-
-function renderQuality() {
-  const allRows = recordsForProject(state.realized).map(normalizeRecord);
-  const rows = allRows.filter((record) => record.active);
-  const missingUnit = rows.filter((row) => !row.unit).length;
-  const missingNpvReference = rows.filter((row) => !row.referenceNpv).length;
-  $("#quality-panel").innerHTML = `
-    <div><span>Vendas importadas</span><strong>${allRows.length}</strong></div>
-    <div><span>Vendas ativas</span><strong>${rows.length}</strong></div>
-    <div><span>Vendas inativas</span><strong>${allRows.length - rows.length}</strong></div>
-    <div><span>Unidades sem identificação</span><strong>${missingUnit}</strong></div>
-    <div><span>Registros sem referência VPL</span><strong>${missingNpvReference}</strong></div>
-  `;
-}
-
-function calculationRows() {
-  return recordsForProject(state.realized)
-    .map(calculationLine)
-    .sort((a, b) => String(b.approvalDate).localeCompare(String(a.approvalDate)));
-}
-
-function renderCalculationHistory() {
-  const rows = calculationRows();
-  const activeRows = rows.filter((row) => row.active);
-  $("#calculation-count").textContent = rows.length
-    ? `${activeRows.length} vendas ativas de ${rows.length} importadas. A tabela exibe até 150 linhas; o CSV contém todo o histórico.`
-    : "Importe uma base para visualizar a memória de cálculo de cada venda.";
-  if (!rows.length) {
-    $("#calculation-table").innerHTML =
-      '<tr class="empty-row"><td colspan="11">Nenhuma venda importada.</td></tr>';
-    return;
-  }
-  $("#calculation-table").innerHTML = rows.slice(0, 150).map((row) => `
-    <tr class="${row.active ? "" : "inactive-row"}">
-      <td>
-        <strong>${escapeHtml(row.id)}</strong>
-        <span>${escapeHtml(row.project)} · ${escapeHtml(row.unit)}</span>
-      </td>
-      <td><strong>${row.active ? "Ativa" : "Inativa"}</strong><span>${escapeHtml(row.proposalStatus || row.status)}${row.contractStatus ? ` · ${escapeHtml(row.contractStatus)}` : ""}</span></td>
-      <td>${fullMoney.format(row.tableNominal)}</td>
-      <td>${formatMetric(row.gorduraRate, "percent")}</td>
-      <td>${fullMoney.format(row.referenceNominal)}</td>
-      <td>${fullMoney.format(row.referenceNpv)}</td>
-      <td>${fullMoney.format(row.proposalNpv)}</td>
-      <td>${fullMoney.format(row.actualCommercialCost)}</td>
-      <td>${fullMoney.format(row.budgetCommercialCost)}</td>
-      <td class="${tone(-row.commissionVariance)}">${formatMetric(row.commissionVariance, "money", true)}</td>
-      <td class="${tone(row.netCommercialResult)}">${formatMetric(row.netCommercialResult, "percent")}</td>
-    </tr>
-  `).join("");
-}
-
-function csvCell(value) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
-}
-
-function exportCalculationHistory() {
-  const headers = [
-    "Proposta", "Produto", "Unidade", "Status Proposta", "Status Contrato", "Ativa",
-    "Valor Tabela", "Gordura", "BP Nominal", "Tabela VPL", "BP VPL",
-    "Proposta Nominal", "Proposta VPL", "Comissao Real", "Comissao Base 4%",
-    "Desvio Comissao", "Resultado Nominal", "Resultado VPL", "Resultado Liquido",
-  ];
-  const rows = calculationRows().map((row) => [
-    row.id, row.project, row.unit, row.proposalStatus, row.contractStatus,
-    row.active ? "Sim" : "Não", row.tableNominal, row.gorduraRate,
-    row.referenceNominal, row.tableNpv, row.referenceNpv, row.proposalNominal,
-    row.proposalNpv, row.actualCommercialCost, row.budgetCommercialCost,
-    row.commissionVariance, row.nominalResult, row.npvResult, row.netCommercialResult,
-  ]);
-  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(";")).join("\n");
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
-  link.download = `historico-calculos-${new Date().toISOString().slice(0, 10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
-}
-
-function renderSimulations() {
-  const rows = recordsForProject(state.simulations);
-  $("#active-simulations").textContent =
-    `${rows.filter((item) => item.active).length} simulações ativas`;
-  if (!rows.length) {
-    $("#simulation-table").innerHTML =
-      '<tr class="empty-row"><td colspan="7">Adicione uma proposta para calcular o impacto pro forma.</td></tr>';
-    return;
-  }
-  $("#simulation-table").innerHTML = rows.map((row) => {
-    const npvResult = row.referenceNpv ? row.proposalNpv / row.referenceNpv - 1 : null;
-    const cost =
-      monetaryCost(row, "commissionValue", "commissionRate") + row.bonusValue;
-    return `
-      <tr>
-        <td><strong>${escapeHtml(row.id)}</strong><span>${escapeHtml(row.channel)}</span></td>
-        <td><strong>${escapeHtml(row.project)}</strong><span>${escapeHtml(row.unit)}</span></td>
-        <td>${fullMoney.format(row.proposalNominal)}</td>
-        <td class="${tone(npvResult)}">${formatMetric(npvResult, "percent")}</td>
-        <td>${fullMoney.format(cost)}</td>
-        <td><input class="switch" type="checkbox" data-toggle="${escapeHtml(row.id)}" ${row.active ? "checked" : ""} aria-label="Ativar simulação ${escapeHtml(row.id)}"></td>
-        <td><button class="remove" data-remove="${escapeHtml(row.id)}">Remover</button></td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function renderFreshness() {
-  const label = $("#last-import");
-  const dot = $(".status-dot");
-  if (!state.lastImport) {
-    label.textContent = "Nenhuma base importada";
-    dot.classList.remove("loaded");
-    return;
-  }
-  label.textContent = `Base atualizada em ${new Date(state.lastImport).toLocaleString("pt-BR")}`;
-  dot.classList.add("loaded");
-}
-
-function render() {
-  renderProjects();
-  renderProductOverview();
-  renderMetrics();
-  $("#comparison-context").textContent =
-    `${state.selectedProject === "Todos" ? "Todos os produtos" : state.selectedProject} · Realizado x Pro forma`;
-  renderChannels();
-  renderQuality();
-  renderCalculationHistory();
-  renderSimulations();
-  renderFreshness();
-  saveState(state);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;",
-  })[character]);
-}
-
-function toast(message) {
-  const element = $("#toast");
-  element.textContent = message;
-  element.classList.add("show");
-  window.setTimeout(() => element.classList.remove("show"), 2600);
-}
-
-$("#open-import").addEventListener("click", () => $("#import-dialog").showModal());
-$("#open-simulation").addEventListener("click", () => $("#simulation-dialog").showModal());
-
-$("#project-filter").addEventListener("change", (event) => {
-  state.selectedProject = event.target.value;
-  render();
-});
-
-$("#product-grid").addEventListener("click", (event) => {
-  const card = event.target.closest("[data-project]");
-  if (!card) return;
-  state.selectedProject = card.dataset.project;
-  render();
-  $("#comparison-title").scrollIntoView({ behavior: "smooth", block: "start" });
-});
-
-$("#export-calculations").addEventListener("click", exportCalculationHistory);
-
-$("#import-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const feedback = $("#import-feedback");
-  const file = $("#proposal-file").files[0];
-  if (!file) return;
-  feedback.hidden = false;
-  feedback.className = "feedback";
-  feedback.textContent = "Lendo e conciliando a base…";
-  try {
-    const result = await readProposalFile(file);
-    if (!result.records.length) throw new Error("Nenhuma proposta válida foi encontrada.");
-    state.realized = $("#replace-import").checked
-      ? result.records
-      : [...state.realized, ...result.records];
-    state.lastImport = new Date().toISOString();
-    feedback.innerHTML = `
-      <strong>${result.records.length} propostas processadas.</strong>
-      ${result.warnings.length ? `<br>${result.warnings.map(escapeHtml).join("<br>")}` : ""}
-    `;
-    render();
-    window.setTimeout(() => {
-      $("#import-dialog").close();
-      $("#import-form").reset();
-      feedback.hidden = true;
-      toast("Base realizada atualizada.");
-    }, 900);
-  } catch (error) {
-    feedback.className = "feedback error";
-    feedback.textContent = error.message;
-  }
-});
-
-$("#simulation-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (event.submitter?.value === "cancel") return;
-  const data = Object.fromEntries(new FormData(event.currentTarget));
-  const commissionRate = parseNumber(data.commissionRate);
-  const budgetCommissionRate = parseNumber(data.budgetCommissionRate);
-  const record = normalizeRecord({
-    ...data,
-    source: "simulation",
-    status: "Simulação",
-    scenario: "Pro forma",
-    referenceNominal: parseNumber(data.referenceNominal),
-    proposalNominal: parseNumber(data.proposalNominal),
-    referenceNpv: parseNumber(data.referenceNpv),
-    proposalNpv: parseNumber(data.proposalNpv),
-    commissionRate: commissionRate > 1 ? commissionRate / 100 : commissionRate,
-    bonusValue: parseNumber(data.bonusValue),
-    budgetCommissionRate:
-      budgetCommissionRate > 1 ? budgetCommissionRate / 100 : budgetCommissionRate,
-    budgetBonusValue: parseNumber(data.budgetBonusValue),
+function filteredHistory() {
+  const search=$("#history-search").value.toLowerCase(), status=$("#history-status").value, category=$("#history-category").value, result=$("#history-result").value;
+  return projectRows(state.proposals).map(calculationLine).filter((r)=>{
+    const hay=`${r.id} ${r.unit} ${r.pep} ${r.channel}`.toLowerCase();
+    return (!search||hay.includes(search))&&(!status||r.proposalStatus===status)&&(!category||r.category===category)&&(!result||(result==="negative"?r.realNpvResult<0:r.realNpvResult>=0));
   });
-  state.simulations = [...state.simulations.filter((item) => item.id !== record.id), record];
-  event.currentTarget.reset();
-  $("#simulation-dialog").close();
-  render();
-  toast("Proposta adicionada ao cenário pro forma.");
-});
+}
+function renderHistory() {
+  const all=projectRows(state.proposals).map(calculationLine);
+  const statuses=[...new Set(all.map((r)=>r.proposalStatus).filter(Boolean))], categories=[...new Set(all.map((r)=>r.category).filter(Boolean))];
+  const status=$("#history-status"), category=$("#history-category"), sv=status.value, cv=category.value;
+  status.innerHTML='<option value="">Todos os status</option>'+statuses.map((v)=>`<option>${escapeHtml(v)}</option>`).join("");status.value=sv;
+  category.innerHTML='<option value="">Todas as categorias</option>'+categories.map((v)=>`<option>${escapeHtml(v)}</option>`).join("");category.value=cv;
+  const rows=filteredHistory();
+  $("#history-table").innerHTML=rows.length?rows.map((r)=>`<tr class="${r.active?"":"inactive"}"><td><strong>${escapeHtml(r.id)}</strong><small>${escapeHtml(r.channel)}</small></td><td>${escapeHtml(r.block)} ${escapeHtml(r.unit||r.pep)}<small>${escapeHtml(r.category)}</small></td><td>${escapeHtml(r.accountingDate||"—")}</td><td>${fullMoney.format(r.tableNominal)}</td><td>${fullMoney.format(r.referenceNominal)}</td><td>${fullMoney.format(r.proposalNominal)}</td><td>${fullMoney.format(r.proposalNpv)}</td><td>${fullMoney.format(r.commercialCost)}</td><td class="${tone(r.nominalResult)}">${fmtPct(r.nominalResult)}</td><td class="${tone(r.realNominalResult)}">${fmtPct(r.realNominalResult)}</td><td class="${tone(r.realNpvResult)}">${fmtPct(r.realNpvResult)}</td></tr>`).join(""):'<tr><td colspan="11" class="empty-cell">Nenhum registro encontrado.</td></tr>';
+}
+const metricDefs=[["units","Unidades","number"],["nominalVgv","VGV nominal","money"],["nominalResult","Resultado nominal","pct"],["realNominalResult","Resultado real","pct"],["realNpvResult","Resultado real VPL","pct"],["commercialCostRate","Comissão + prêmio","pct"]];
+function renderSimulator() {
+  const units=projectRows(state.units).filter((u)=>statusTone(u.status,u.exchange)==="available");
+  const select=$("#simulation-unit"), current=select.value;
+  select.innerHTML='<option value="">Selecione uma unidade disponível</option>'+units.map((u)=>`<option value="${escapeHtml(u.pep)}">${escapeHtml(u.block)} ${escapeHtml(u.unit||u.pep)} · ${escapeHtml(u.category)}</option>`).join("");select.value=current;
+  const sims=projectRows(state.simulations), comparison=compareMetrics(projectRows(state.proposals),sims);
+  $("#simulation-count").textContent=`${sims.filter((s)=>s.active).length} propostas ativas`;
+  $("#comparison").innerHTML='<div class="comparison-row head"><span>Indicador</span><span>Realizado</span><span>Pro forma</span><span>Impacto</span></div>'+metricDefs.map(([key,label,type])=>{
+    const f=(v)=>type==="money"?money.format(v):type==="pct"?fmtPct(v):num.format(v);
+    const impact=comparison.impact[key]; return `<div class="comparison-row"><span>${label}</span><strong>${f(comparison.realized[key])}</strong><strong>${f(comparison.proForma[key])}</strong><strong class="${tone(impact)}">${impact!=null&&impact>0?"+":""}${f(impact)}</strong></div>`;
+  }).join("");
+  $("#simulation-list").innerHTML=sims.length?sims.map((s)=>{const line=calculationLine(s);return `<div class="simulation-item"><div><strong>${escapeHtml(s.id)}</strong><span>${escapeHtml(s.unit||s.pep)} · ${escapeHtml(s.channel)}</span></div><div><strong class="${tone(line.realNpvResult)}">${fmtPct(line.realNpvResult)}</strong><span>${money.format(s.proposalNominal)}</span></div><label class="switch"><input type="checkbox" data-toggle-sim="${escapeHtml(s.id)}" ${s.active?"checked":""}><i></i></label><button title="Compartilhar defesa" data-share="${escapeHtml(s.id)}">↗</button><button title="Remover" data-remove-sim="${escapeHtml(s.id)}">×</button></div>`;}).join(""):'<div class="empty-card">Nenhuma proposta adicionada ao cenário.</div>';
+}
+const importCards=[
+  ["proposals","Propostas","Histórico financeiro e comercial"],["units","Tabela e disponibilidade","Cadastro, preço e status das unidades"],
+  ["projects","De – Para","Nome comercial e dados do produto"],["targets","BP","Metas mensais de unidades e VGV"],["categories","Categorias","Tipologia e classificação por PEP"],
+];
+function renderSettings() {
+  $("#import-grid").innerHTML=importCards.map(([type,title,desc])=>{const info=state.imports[type];return `<article class="import-card"><div class="import-icon">${type==="proposals"?"$":type==="units"?"▦":type==="projects"?"⌂":type==="targets"?"◎":"◇"}</div><div><h3>${title}</h3><p>${desc}</p>${info?`<small>${num.format(info.records)} registros · ${new Date(info.date).toLocaleString("pt-BR")}</small>`:"<small>Ainda não importada</small>"}</div><button class="button subtle" data-import="${type}">${info?"Substituir":"Importar"}</button></article>`;}).join("");
+  const unitKeys=new Set(state.units.map((u)=>unitKey(u.pep))); const categoryKeys=new Set(state.categories.map((c)=>unitKey(c.pep)));
+  const duplicates=state.proposals.length-new Set(state.proposals.map((p)=>p.id)).size;
+  const values=[
+    ["Empreendimentos",state.projects.length],["Unidades válidas",state.units.length],["Propostas",state.proposals.length],["Metas BP",state.targets.length],
+    ["PEPs sem categoria",state.units.filter((u)=>!categoryKeys.has(unitKey(u.pep))).length],["Propostas sem unidade",state.proposals.filter((p)=>!unitKeys.has(unitKey(p.pep||p.unit))).length],["IDs duplicados",duplicates],["Base 100","1,000"],
+  ];
+  $("#quality-grid").innerHTML=values.map(([label,value])=>`<div><span>${label}</span><strong>${typeof value==="number"?num.format(value):value}</strong></div>`).join("");
+}
+function render() {
+  renderProjectSelect(); renderPortfolio(); renderDetail(); renderHistory(); renderSimulator(); renderSettings(); saveState(state);
+}
+function openProject(id) { state.selectedProject=id; showView("detail"); }
+function simulateUnit(pep) { showView("simulator"); $("#simulation-unit").value=pep; const u=state.units.find((x)=>unitKey(x.pep)===unitKey(pep)); if(u){const form=$("#simulation-form");form.elements.proposalNominal.value=u.tableNominal;form.elements.proposalNpv.value=u.tableNpv||u.tableNominal;} }
 
-$("#simulation-table").addEventListener("change", (event) => {
-  const id = event.target.dataset.toggle;
-  if (!id) return;
-  state.simulations = state.simulations.map((item) =>
-    item.id === id ? { ...item, active: event.target.checked } : item);
-  render();
+document.addEventListener("click",(event)=>{
+  const view=event.target.closest("[data-view]")?.dataset.view; if(view){event.preventDefault();showView(view);}
+  const project=event.target.closest("[data-open-project]")?.dataset.openProject;if(project)openProject(project);
+  const pep=event.target.closest("[data-unit]")?.dataset.unit;if(pep)renderUnitDetail(pep);
+  const simulate=event.target.closest("[data-simulate-unit]")?.dataset.simulateUnit;if(simulate)simulateUnit(simulate);
+  const type=event.target.closest("[data-import]")?.dataset.import;if(type){pendingImport=type;$("#file-input").click();}
+  const remove=event.target.closest("[data-remove-sim]")?.dataset.removeSim;if(remove){state.simulations=state.simulations.filter((s)=>s.id!==remove);render();}
+  const share=event.target.closest("[data-share]")?.dataset.share;if(share)shareSimulation(share);
 });
-
-$("#simulation-table").addEventListener("click", (event) => {
-  const id = event.target.dataset.remove;
-  if (!id) return;
-  state.simulations = state.simulations.filter((item) => item.id !== id);
-  render();
-  toast("Simulação removida.");
+$$(".nav-item,.top-actions [data-view]").forEach((el)=>el.addEventListener("click",()=>{}));
+$("#project-select").addEventListener("change",(e)=>{state.selectedProject=e.target.value;render();});
+$("#portfolio-sort").addEventListener("change",renderPortfolio);
+["#history-search","#history-status","#history-category","#history-result"].forEach((s)=>$(s).addEventListener("input",renderHistory));
+$("#file-input").addEventListener("change",async(e)=>{
+  const file=e.target.files[0];if(!file||!pendingImport)return;
+  try{const result=await readDatasetFile(file,pendingImport);state[pendingImport]=result.records;state.imports[pendingImport]={file:file.name,date:new Date().toISOString(),records:result.records.length,warnings:result.warnings};state=reconcile(state);render();toast(`${result.records.length} registros processados em ${importCards.find((x)=>x[0]===pendingImport)[1]}.`);}catch(error){toast(error.message);}finally{e.target.value="";}
 });
-
-$("#clear-data").addEventListener("click", () => {
-  if (!window.confirm("Remover a base importada e todas as simulações deste navegador?")) return;
-  state = clearState();
-  render();
-  toast("Dados locais removidos.");
+$("#simulation-form").addEventListener("submit",(event)=>{
+  event.preventDefault();const data=Object.fromEntries(new FormData(event.currentTarget));const unit=state.units.find((u)=>unitKey(u.pep)===unitKey(data.pep));if(!unit)return;
+  let rate=parseNumber(data.commissionRate);if(rate>1)rate/=100;
+  const simulation={...unit,id:data.id||`SIM-${Date.now().toString().slice(-6)}`,source:"simulation",active:true,proposalStatus:"Simulação",proposalNominal:parseNumber(data.proposalNominal),proposalNpv:parseNumber(data.proposalNpv),commissionRate:rate,bonusValue:parseNumber(data.bonusValue),channel:data.channel,note:data.note,referenceNominal:unit.tableNominal*(1-unit.gorduraRate),referenceNpv:(unit.tableNpv||unit.tableNominal)*(1-unit.gorduraRate)};
+  state.simulations=[...state.simulations.filter((s)=>s.id!==simulation.id),simulation];render();toast("Proposta adicionada ao cenário pro forma.");
 });
-
-render();
+$("#simulation-list").addEventListener("change",(event)=>{const id=event.target.dataset.toggleSim;if(id){state.simulations=state.simulations.map((s)=>s.id===id?{...s,active:event.target.checked}:s);render();}});
+$("#clear-data").addEventListener("click",()=>{if(confirm("Remover todas as bases e simulações deste navegador?")){state=clearState();render();toast("Dados locais removidos.");}});
+$("#export-history").addEventListener("click",()=>{
+  const rows=filteredHistory();const header=["Proposta","Produto","PEP","Canal","Tabela","BP","Proposta nominal","Proposta VPL","Custo comercial","Resultado nominal","Resultado real","Resultado real VPL"];
+  const body=rows.map((r)=>[r.id,r.project,r.pep,r.channel,r.tableNominal,r.referenceNominal,r.proposalNominal,r.proposalNpv,r.commercialCost,r.nominalResult,r.realNominalResult,r.realNpvResult]);
+  const csv=[header,...body].map((row)=>row.map((v)=>`"${String(v??"").replace(/"/g,'""')}"`).join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([`\uFEFF${csv}`],{type:"text/csv"}));a.download="historico-comercial.csv";a.click();URL.revokeObjectURL(a.href);
+});
+async function shareSimulation(id) {
+  const s=state.simulations.find((x)=>x.id===id), line=s&&calculationLine(s);if(!s)return;
+  const text=`Defesa comercial — ${s.project}\nUnidade: ${s.unit||s.pep}\nTabela: ${fullMoney.format(s.tableNominal)}\nProposta: ${fullMoney.format(s.proposalNominal)}\nResultado real VPL: ${fmtPct(line.realNpvResult)}\n\n${s.note||""}`.trim();
+  if(navigator.share){try{await navigator.share({title:`Proposta ${s.id}`,text});return;}catch{}}
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank","noopener");
+}
+showView(state.view||"portfolio");

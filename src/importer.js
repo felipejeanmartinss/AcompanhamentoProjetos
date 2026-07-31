@@ -1,193 +1,121 @@
-import { INITIAL_BASE100_FACTOR, normalizeRecord } from "./domain.js?v=20260728-3";
-
-const aliases = {
-  id: ["id proposta", "proposta", "codigo proposta", "numero proposta", "id"],
-  project: ["empreendimento", "projeto", "nome empreendimento"],
-  unit: ["pep", "unidade", "codigo unidade", "apto", "apartamento"],
-  status: ["status", "situacao", "status proposta"],
-  proposalStatus: ["status proposta", "situacao proposta"],
-  contractStatus: ["status contrato", "situacao contrato"],
-  approvalDate: ["data aprovacao", "data da aprovacao", "data venda", "data contrato"],
-  channel: ["canal", "canal venda", "empresa vendas", "imobiliaria"],
-  tableNominal: ["tabela nominal", "valor tabela", "preco tabela", "tabela"],
-  referenceNominal: ["bp nominal", "valor bp", "preco meta", "referencia nominal"],
-  tableNpv: ["tabela vpl", "valor tabela vpl", "vpl tabela", "tabela vp"],
-  referenceNpv: ["bp vpl", "vpl bp", "referencia vpl", "preco meta vpl"],
-  proposalNominal: ["proposta nominal", "valor proposta", "valor venda", "vgv"],
-  proposalNpv: ["proposta vpl", "valor proposta vpl", "vpl proposta", "vpl venda", "valor presente"],
-  gorduraRate: ["gordura", "percentual gordura"],
-  commissionValue: ["total comissao", "comissao valor", "valor comissao", "comissao r"],
-  commissionRate: ["comissao percentual", "percentual comissao", "comissao"],
-  bonusValue: ["total premio", "premio", "valor premio", "premiacao"],
-  budgetCommissionRate: ["comissao orcada", "percentual comissao orcada"],
-  budgetCommissionValue: ["valor comissao orcada"],
-  budgetBonusValue: ["premio orcado", "valor premio orcado"],
-};
+import { BASE100_FACTOR, normalizeProposal, normalizeUnit, unitKey } from "./domain.js";
 
 export function normalizeHeader(value) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/r\$/gi, "r")
-    .replace(/[%()[\]_/.-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+  return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/r\$/gi, "r").replace(/[%()[\]_/.-]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
 }
-
-export function detectColumns(headers) {
-  const normalized = headers.map(normalizeHeader);
-  const mapping = {};
-  for (const [field, candidates] of Object.entries(aliases)) {
-    const index = normalized.findIndex((header) =>
-      candidates.some((candidate) => header === normalizeHeader(candidate)),
-    );
-    if (index >= 0) mapping[field] = headers[index];
-  }
-  return mapping;
-}
-
 export function parseNumber(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  if (value === null || value === undefined || value === "") return 0;
-
+  if (value == null || value === "") return 0;
   let text = String(value).trim().replace(/\s/g, "").replace(/R\$/gi, "");
-  const percent = text.includes("%");
-  text = text.replace("%", "");
-
-  if (text.includes(",") && text.includes(".")) {
-    text = text.lastIndexOf(",") > text.lastIndexOf(".")
-      ? text.replace(/\./g, "").replace(",", ".")
-      : text.replace(/,/g, "");
-  } else if (text.includes(",")) {
-    text = text.replace(/\./g, "").replace(",", ".");
-  }
-
-  const number = Number(text);
-  if (!Number.isFinite(number)) return 0;
-  return percent ? number / 100 : number;
+  const pct = text.includes("%"); text = text.replace("%", "");
+  if (text.includes(",") && text.includes(".")) text = text.lastIndexOf(",") > text.lastIndexOf(".") ? text.replace(/\./g, "").replace(",", ".") : text.replace(/,/g, "");
+  else if (text.includes(",")) text = text.replace(/\./g, "").replace(",", ".");
+  const result = Number(text); return Number.isFinite(result) ? (pct ? result / 100 : result) : 0;
 }
+const aliases = {
+  proposals: {
+    id:["proposta","id proposta","numero proposta"], projectCode:["codigo empreendimento","codigo sap","cod empreendimento"],
+    project:["nome empreendimento","empreendimento","projeto"], pep:["pep","codigo unidade"], unit:["unidade","apto"],
+    block:["bloco"], proposalStatus:["status proposta","situacao proposta","status"], contractStatus:["status contrato","situacao contrato"],
+    accountingDate:["data contabil","data aprovacao","data venda"], channel:["empresa de venda","empresa vendas","canal","imobiliaria"],
+    tableNominal:["valor tabela","tabela"], tableNpv:["valor tabela vpl","tabela vpl"], gorduraRate:["gordura","percentual gordura"],
+    proposalNominal:["valor proposta","proposta nominal","valor venda"], proposalNpv:["valor proposta vpl","proposta vpl","vpl proposta"],
+    commissionValue:["total comissao","valor comissao"], commissionRate:["percentual comissao","comissao"], bonusValue:["total premio","valor premio","premio"],
+  },
+  units: {
+    projectCode:["codigo empreendimento","codigo sap","codigo"], project:["empreendimento","nome empreendimento"], pep:["pep","codigo unidade"],
+    unit:["unidade","apto"], block:["bloco","torre"], floor:["andar"], stack:["prumada","final"], area:["area privativa","area"],
+    parking:["vagas"], tableNominal:["valor tabela","tabela vigente","vgv tabela"], tableNpv:["valor tabela vpl","tabela vpl"],
+    gorduraRate:["gordura"], status:["status unidade","disponibilidade","status"], exchange:["permuta"],
+  },
+  projects: {
+    code:["codigo sap","codigo","cod empreendimento"], name:["nome comercial","empreendimento","produto"],
+    launchDate:["data lancamento","lancamento"], deliveryDate:["data entrega","entrega"], totalUnits:["total unidades tegra","total unidades","unidades"],
+  },
+  targets: {
+    projectCode:["codigo","codigo sap","cod empreendimento"], project:["empreendimento","produto"], month:["mes","ano mes","anomes"],
+    targetUnits:["meta unidades","unidades bp","qtd bp"], targetVgv:["meta vgv","vgv bp"],
+  },
+  categories: { pep:["pep","codigo unidade"], category:["categoria","tipologia","classificacao"] },
+};
+function mappingFor(headers, type) {
+  const normalized = headers.map(normalizeHeader);
+  return Object.fromEntries(Object.entries(aliases[type]).flatMap(([field, candidates]) => {
+    const index = normalized.findIndex((header) => candidates.some((c) => header === normalizeHeader(c)));
+    return index < 0 ? [] : [[field, headers[index]]];
+  }));
+}
+export function detectColumns(headers, type = "proposals") { return mappingFor(headers, type); }
+function rowValue(row, mapping, field) { return mapping[field] ? row[mapping[field]] : undefined; }
+const flag = (value) => ["sim","s","yes","1","true"].includes(normalizeHeader(value));
 
-export function rowsToRecords(rows) {
-  if (!rows.length) return { records: [], mapping: {}, warnings: ["Arquivo sem linhas."] };
-  const headers = Object.keys(rows[0]);
-  const mapping = detectColumns(headers);
+export function rowsToDataset(rows, type) {
+  if (!rows.length) return { records:[], warnings:["Arquivo sem linhas."], mapping:{} };
+  const mapping = mappingFor(Object.keys(rows[0]), type);
   const warnings = [];
-
-  if (!mapping.unit) warnings.push("Coluna de unidade/PEP não identificada.");
-  if (!mapping.proposalNominal) warnings.push("Coluna de valor nominal da proposta não identificada.");
-  if (!mapping.proposalNpv) warnings.push("VPL da proposta ausente; será usado o valor nominal.");
-  if (!mapping.referenceNpv && !mapping.tableNpv) {
-    warnings.push("Referência VPL ausente; será usada a referência nominal.");
-  }
-
-  const dataRows = rows.filter((row) => {
-    const id = mapping.id ? row[mapping.id] : "";
-    const unit = mapping.unit ? row[mapping.unit] : "";
-    return String(id ?? "").trim() || String(unit ?? "").trim();
-  });
-  const excludedRows = rows.length - dataRows.length;
-  if (excludedRows) {
-    warnings.push(`${excludedRows} linha(s) de totalização ou rodapé foram ignoradas.`);
-  }
-
-  const records = dataRows
-    .map((row, index) => {
-      const get = (field) => mapping[field] ? row[mapping[field]] : undefined;
-      const proposalNominal = parseNumber(get("proposalNominal"));
-      const proposalNpv = parseNumber(get("proposalNpv")) || proposalNominal;
-      const tableNominal = parseNumber(get("tableNominal"));
-      const gorduraRate = parseNumber(get("gorduraRate"));
-      const explicitReferenceNominal = parseNumber(get("referenceNominal"));
-      const referenceNominal = explicitReferenceNominal || tableNominal * (1 - gorduraRate);
-      const tableNpv = parseNumber(get("tableNpv")) || tableNominal;
-      const explicitReferenceNpv = parseNumber(get("referenceNpv"));
-      const referenceNpv = explicitReferenceNpv || tableNpv * (1 - gorduraRate);
-      const commissionRaw = parseNumber(get("commissionRate"));
-
-      return normalizeRecord({
-        id: get("id") || `IMP-${index + 1}`,
-        project: get("project"),
-        unit: get("unit"),
-        status: get("proposalStatus") || get("status"),
-        proposalStatus: get("proposalStatus") || get("status"),
-        contractStatus: get("contractStatus"),
-        approvalDate: get("approvalDate"),
-        channel: get("channel"),
-        tableNominal,
-        referenceNominal,
-        tableNpv,
-        referenceNpv,
-        gorduraRate,
-        proposalNominal,
-        proposalNpv,
-        commissionValue: parseNumber(get("commissionValue")),
-        commissionRate: commissionRaw > 1 ? commissionRaw / 100 : commissionRaw,
-        bonusValue: parseNumber(get("bonusValue")),
-        budgetCommissionRate: mapping.budgetCommissionRate
-          ? parseNumber(get("budgetCommissionRate"))
-          : undefined,
-        budgetCommissionValue: parseNumber(get("budgetCommissionValue")),
-        budgetBonusValue: parseNumber(get("budgetBonusValue")),
-        base100Factor: INITIAL_BASE100_FACTOR,
-        source: "import",
+  if (type !== "projects" && type !== "targets" && !mapping.pep) warnings.push("PEP não identificado.");
+  let records = rows.filter((row) => Object.values(row).some((value) => String(value ?? "").trim())).map((row, index) => {
+    const get = (field) => rowValue(row, mapping, field);
+    if (type === "proposals") {
+      const rate = parseNumber(get("commissionRate"));
+      return normalizeProposal({
+        id:get("id") || `IMP-${index+1}`, projectCode:get("projectCode"), project:get("project"), pep:get("pep"), unit:get("unit"),
+        block:get("block"), proposalStatus:get("proposalStatus"), contractStatus:get("contractStatus"), accountingDate:get("accountingDate"),
+        channel:get("channel"), tableNominal:parseNumber(get("tableNominal")), tableNpv:parseNumber(get("tableNpv")),
+        gorduraRate:parseNumber(get("gorduraRate")), proposalNominal:parseNumber(get("proposalNominal")),
+        proposalNpv:parseNumber(get("proposalNpv")), commissionValue:parseNumber(get("commissionValue")),
+        commissionRate:rate > 1 ? rate/100 : rate, bonusValue:parseNumber(get("bonusValue")), base100Factor:BASE100_FACTOR,
       });
+    }
+    if (type === "units") return normalizeUnit({
+      projectCode:get("projectCode"), project:get("project"), pep:get("pep"), unit:get("unit"), block:get("block"),
+      floor:get("floor"), stack:get("stack"), area:parseNumber(get("area")), parking:parseNumber(get("parking")),
+      tableNominal:parseNumber(get("tableNominal")), tableNpv:parseNumber(get("tableNpv")), gorduraRate:parseNumber(get("gorduraRate")),
+      status:get("status"), exchange:flag(get("exchange")),
     });
-
-  return { records, mapping, warnings };
+    if (type === "projects") return { code:String(get("code") || ""), name:String(get("name") || ""), launchDate:get("launchDate") || "", deliveryDate:get("deliveryDate") || "", totalUnits:parseNumber(get("totalUnits")) };
+    if (type === "targets") return { projectCode:String(get("projectCode") || ""), project:String(get("project") || ""), month:get("month") || "", targetUnits:parseNumber(get("targetUnits")), targetVgv:parseNumber(get("targetVgv")) };
+    return { pep:String(get("pep") || ""), category:String(get("category") || "Sem categoria") };
+  });
+  if (type === "units") {
+    const seen = new Set(); const duplicates = [];
+    records = records.filter((r) => { const key=unitKey(r.pep); if (!key || seen.has(key)) { if(key) duplicates.push(r.pep); return false; } seen.add(key); return true; });
+    if (duplicates.length) warnings.push(`${duplicates.length} PEP(s) duplicado(s) ignorado(s).`);
+  }
+  return { records, warnings, mapping };
 }
+export const rowsToRecords = (rows) => rowsToDataset(rows, "proposals");
 
 function parseCsvLine(line, separator) {
-  const cells = [];
-  let value = "";
-  let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (char === '"') {
-      if (quoted && line[index + 1] === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (char === separator && !quoted) {
-      cells.push(value);
-      value = "";
-    } else {
-      value += char;
-    }
-  }
-  cells.push(value);
-  return cells;
+  const cells=[]; let value="", quoted=false;
+  for (let i=0;i<line.length;i+=1) { const char=line[i]; if(char === '"'){ if(quoted && line[i+1] === '"'){value+='"';i+=1;} else quoted=!quoted; } else if(char===separator&&!quoted){cells.push(value);value="";} else value+=char; }
+  cells.push(value); return cells;
 }
-
 export function parseCsv(text) {
-  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
-  if (!lines.length) return [];
-  const separator = (lines[0].match(/;/g) || []).length >= (lines[0].match(/,/g) || []).length
-    ? ";"
-    : ",";
-  const headers = parseCsvLine(lines[0], separator).map((header) => header.trim());
-  return lines.slice(1).map((line) =>
-    Object.fromEntries(
-      parseCsvLine(line, separator).map((value, index) => [headers[index], value.trim()]),
-    ),
-  );
+  const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter((line)=>line.trim()); if(!lines.length)return[];
+  const separator=(lines[0].match(/;/g)||[]).length >= (lines[0].match(/,/g)||[]).length ? ";" : ",";
+  const headers=parseCsvLine(lines[0],separator).map((h)=>h.trim());
+  return lines.slice(1).map((line)=>Object.fromEntries(parseCsvLine(line,separator).map((v,i)=>[headers[i],v.trim()])));
+}
+export async function readDatasetFile(file, type) {
+  const extension=file.name.split(".").pop().toLowerCase();
+  let rows;
+  if(extension==="csv") rows=parseCsv(await file.text());
+  else {
+    if(!["xlsx","xls"].includes(extension)) throw new Error("Formato não suportado. Use XLSX, XLS ou CSV.");
+    if(!globalThis.XLSX) throw new Error("Leitor Excel indisponível. Verifique a conexão ou use CSV.");
+    const workbook=globalThis.XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});
+    rows=globalThis.XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{defval:""});
+  }
+  return rowsToDataset(rows,type);
 }
 
-export async function readProposalFile(file) {
-  const extension = file.name.split(".").pop().toLowerCase();
-  if (extension === "csv") {
-    return rowsToRecords(parseCsv(await file.text()));
-  }
-  if (!["xlsx", "xls"].includes(extension)) {
-    throw new Error("Formato não suportado. Use XLSX, XLS ou CSV.");
-  }
-  if (!globalThis.XLSX) {
-    throw new Error("Leitor Excel indisponível. Verifique a conexão ou use CSV.");
-  }
-  const workbook = globalThis.XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = globalThis.XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-  return rowsToRecords(rows);
+export function reconcile(state) {
+  const projectsByCode=new Map(state.projects.map((p)=>[String(p.code),p]));
+  const categoriesByPep=new Map(state.categories.map((c)=>[unitKey(c.pep),c.category]));
+  const units=state.units.map((u)=>({ ...u, project:projectsByCode.get(u.projectCode)?.name || u.project, category:categoriesByPep.get(unitKey(u.pep)) || u.category }));
+  const unitsByPep=new Map(units.map((u)=>[unitKey(u.pep),u]));
+  const proposals=state.proposals.map((p)=>{ const u=unitsByPep.get(unitKey(p.pep || p.unit)); return normalizeProposal({ ...p, ...(u ? { projectCode:u.projectCode, project:u.project, pep:u.pep, unit:u.unit, block:u.block, category:u.category, tableNominal:p.tableNominal||u.tableNominal, tableNpv:p.tableNpv||u.tableNpv, gorduraRate:p.gorduraRate||u.gorduraRate } : {}) }); });
+  return { ...state, units, proposals };
 }

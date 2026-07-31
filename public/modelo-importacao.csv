@@ -1,2 +1,2 @@
-Empreendimento;Proposta;PEP;Status;Data Aprovação;Canal;Valor Tabela;BP Nominal;Tabela VPL;BP VPL;Valor Proposta;VPL Proposta;Comissão;Prêmio;Comissão Orçada
-Singular;EXEMPLO-001;AP0901;Realizada;2026-07-01;Imobiliária;4200000;4000000;3900000;3800000;3950000;3700000;5%;0;4%
+Código Empreendimento;Nome Empreendimento;Proposta;PEP;Status Proposta;Status Contrato;Data Contábil;Empresa de Venda;Valor Tabela;Valor Tabela VPL;% Gordura;Valor Proposta;Valor Proposta VPL;Total Comissao;Total Premio
+1000;Singular;EXEMPLO-001;AP0901;EFETIVADA (VENDIDA);ATIVO;2026-07-01;Parceria;4200000;3900000;5%;3950000;3700000;197500;0

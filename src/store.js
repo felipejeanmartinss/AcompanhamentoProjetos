@@ -1,26 +1,17 @@
-const STORAGE_KEY = "acompanhamento-projetos-v1";
+const STORAGE_KEY = "acompanhamento-projetos-v2";
 
-const initialState = {
-  realized: [],
-  simulations: [],
-  selectedProject: "Todos",
-  lastImport: null,
+export const initialState = {
+  projects: [], units: [], proposals: [], targets: [], categories: [],
+  simulations: [], imports: {}, selectedProject: "", view: "portfolio",
 };
 
 export function loadState() {
   try {
-    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return persisted ? { ...initialState, ...persisted } : structuredClone(initialState);
+    const value = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return value ? { ...structuredClone(initialState), ...value } : structuredClone(initialState);
   } catch {
     return structuredClone(initialState);
   }
 }
-
-export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-export function clearState() {
-  localStorage.removeItem(STORAGE_KEY);
-  return structuredClone(initialState);
-}
+export function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+export function clearState() { localStorage.removeItem(STORAGE_KEY); return structuredClone(initialState); }

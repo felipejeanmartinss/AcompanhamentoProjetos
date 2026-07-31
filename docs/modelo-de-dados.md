@@ -1,54 +1,39 @@
-# Modelo de dados inicial
+# Modelo de dados
 
-Esta primeira versão usa um modelo canônico no navegador. Cada linha importada ou simulada vira uma `CommercialProposal`.
+O estado da aplicação é separado em entidades que podem migrar do `localStorage` para uma API sem alterar o motor de cálculo.
 
-## CommercialProposal
+| Entidade | Chave | Origem |
+|---|---|---|
+| `projects` | Código SAP | De – Para |
+| `units` | PEP | Tabela Vigente & Disponibilidade |
+| `proposals` | ID da proposta | Base geral de propostas |
+| `targets` | Código SAP + mês | BP |
+| `categories` | PEP | Categorias das Unidades |
+| `simulations` | ID da simulação | Entrada do usuário |
+| `imports` | Tipo da base | Metadados do lote importado |
 
-| Campo | Uso |
-|---|---|
-| `id` | Identificador da proposta |
-| `source` | `import` ou `simulation` |
-| `project` | Empreendimento |
-| `unit` | Unidade ou PEP |
-| `status` | Situação comercial |
-| `approvalDate` | Data de aprovação/venda |
-| `channel` | Canal ou empresa de vendas |
-| `tableNominal` | Tabela comercial nominal |
-| `referenceNominal` | BP/preço-meta nominal |
-| `tableNpv` | Tabela comercial a VPL |
-| `referenceNpv` | BP/preço-meta a VPL |
-| `proposalNominal` | Valor nominal negociado |
-| `proposalNpv` | Valor presente da proposta |
-| `commissionValue` / `commissionRate` | Comissão realizada |
-| `bonusValue` | Prêmio realizado |
-| `budgetCommissionValue` / `budgetCommissionRate` | Comissão orçada |
-| `budgetBonusValue` | Prêmio orçado |
-| `base100Factor` | Fator de normalização; fixo em `1` nesta versão |
-| `active` | Inclusão da simulação no cenário pro forma |
+## Conciliação
 
-## Regras de cálculo
+1. `projects.code → units.projectCode`
+2. `categories.pep → units.pep`
+3. `proposals.pep → units.pep`
+4. `targets.projectCode → projects.code`
 
-- Resultado nominal: `Σ proposta nominal / Σ referência nominal - 1`
-- Resultado VPL: `Σ proposta VPL / Σ referência VPL - 1`
-- Base 100 a VPL: `Σ(proposta VPL / fator) / Σ(referência VPL / fator) - 1`
-- Custo comercial: `Σ(comissão + prêmio) / Σ proposta nominal`
-- Resultado líquido: `(Σ proposta VPL - custos realizados) / (Σ referência VPL - custos orçados) - 1`
-- Pro forma: realizado acrescido somente das simulações ativas
+PEP é normalizado para comparação sem espaços, hífens ou pontuação. Código SAP permanece texto para preservar zeros à esquerda.
 
-Os percentuais consolidados nunca são calculados pela média simples dos percentuais por proposta.
+## Cálculos
 
-## Evolução preparada
+- `BP nominal = tabela nominal × (1 − gordura)`
+- `BP VPL = tabela VPL × (1 − gordura)`
+- `custo realizado = comissão + prêmio`
+- `custo orçado = 4% × BP nominal`
+- `resultado nominal = Σ proposta nominal / Σ BP nominal − 1`
+- `resultado VPL = Σ proposta VPL / Σ BP VPL − 1`
+- `resultado real nominal = (Σ proposta nominal − Σ custo realizado) / (Σ BP nominal − Σ custo orçado) − 1`
+- `resultado real VPL = (Σ proposta VPL − Σ custo realizado) / (Σ BP VPL − Σ custo orçado) − 1`
 
-O armazenamento local isola a persistência em `src/store.js`. Uma próxima etapa pode substituí-lo por uma API e banco relacional sem alterar o motor de cálculo ou o importador.
+Base 100 permanece fixa em `1` nesta etapa. O campo já existe no modelo para futura versionagem de diferenciais.
 
-Entidades sugeridas para persistência:
+## Próxima evolução
 
-- `projects`
-- `units`
-- `commercial_proposals`
-- `proposal_cash_flows`
-- `assumption_versions`
-- `import_batches`
-- `scenarios`
-
-Tabela Zero e diferenciais devem entrar como uma versão de premissas ligada a unidades, preservando histórico e auditoria.
+Persistência relacional sugerida: `projects`, `units`, `commercial_proposals`, `targets`, `unit_categories`, `scenarios`, `import_batches` e `project_media`. A implantação 2D pode ser adicionada com uma imagem por bloco e coordenadas por PEP; o compartilhamento já está encapsulado no fluxo do simulador.

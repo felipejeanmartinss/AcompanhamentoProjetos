@@ -1,193 +1,137 @@
-export const INITIAL_BASE100_FACTOR = 1;
-export const DEFAULT_BUDGET_COMMISSION_RATE = 0.04;
+export const BASE100_FACTOR = 1;
+export const BUDGET_COMMISSION_RATE = 0.04;
+const n = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+const ratio = (a, b) => b > 0 ? a / b - 1 : null;
+const clean = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
-export const emptyMetrics = () => ({
-  units: 0,
-  nominalVgv: 0,
-  npvRevenue: 0,
-  nominalResult: null,
-  npvResult: null,
-  base100NpvResult: null,
-  commercialCostRate: null,
-  commissionVariance: 0,
-  netCommercialResult: null,
-});
-
-const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
-const hasValue = (value) => value !== null && value !== undefined && value !== "";
-
-const ratio = (numerator, denominator) =>
-  denominator > 0 ? numerator / denominator - 1 : null;
-
-export function statusIsActive(...statuses) {
-  return statuses.every((status) => {
-    const normalized = String(status || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .toLowerCase();
-    if (!normalized) return true;
-    return ![
-      "cancelad",
-      "distrat",
-      "rescind",
-      "recusad",
-      "rejeitad",
-      "excluid",
-      "inativ",
-    ].some((term) => normalized.includes(term));
-  });
+export function isActiveStatus(...values) {
+  return values.every((value) => !["cancel", "distrat", "rescind", "recus", "rejeit", "excluid", "inativ"]
+    .some((term) => clean(value).includes(term)));
 }
 
-export function monetaryCost(record, valueKey, rateKey, basisKey = "proposalNominal") {
-  const explicit = finite(record[valueKey]);
-  if (explicit) return explicit;
-  return finite(record[rateKey]) * finite(record[basisKey]);
-}
+export function unitKey(value) { return clean(value).replace(/[^a-z0-9]/g, ""); }
 
-export function normalizeRecord(record) {
-  const proposalStatus = String(record.proposalStatus || record.status || "Realizada");
-  const contractStatus = String(record.contractStatus || "");
-  const tableNominal = finite(record.tableNominal);
-  const tableNpv = finite(record.tableNpv || tableNominal);
-  const gorduraRate = finite(record.gorduraRate);
-  const referenceNominal = hasValue(record.referenceNominal)
-    ? finite(record.referenceNominal)
-    : tableNominal * (1 - gorduraRate);
-  const referenceNpv = hasValue(record.referenceNpv)
-    ? finite(record.referenceNpv)
-    : tableNpv * (1 - gorduraRate);
-  const budgetCommissionRate = hasValue(record.budgetCommissionRate)
-    ? finite(record.budgetCommissionRate)
-    : DEFAULT_BUDGET_COMMISSION_RATE;
+export function normalizeUnit(row = {}) {
   return {
-    id: String(record.id || crypto.randomUUID()),
-    source: record.source || "import",
-    project: String(record.project || "Empreendimento não informado"),
-    unit: String(record.unit || ""),
-    status: proposalStatus,
-    proposalStatus,
-    contractStatus,
-    approvalDate: record.approvalDate || "",
-    channel: String(record.channel || "Não informado"),
-    tableNominal,
-    gorduraRate,
-    referenceNominal,
-    tableNpv,
-    referenceNpv,
-    proposalNominal: finite(record.proposalNominal),
-    proposalNpv: finite(record.proposalNpv || record.proposalNominal),
-    commissionValue: finite(record.commissionValue),
-    commissionRate: finite(record.commissionRate),
-    bonusValue: finite(record.bonusValue),
-    budgetCommissionValue: finite(record.budgetCommissionValue),
-    budgetCommissionRate,
-    budgetBonusValue: finite(record.budgetBonusValue),
-    base100Factor: finite(record.base100Factor) || INITIAL_BASE100_FACTOR,
-    scenario: String(record.scenario || "Realizado"),
-    active: record.source === "simulation"
-      ? record.active !== false
-      : record.active === false
-        ? false
-        : statusIsActive(proposalStatus, contractStatus),
+    pep: String(row.pep || row.unit || ""),
+    projectCode: String(row.projectCode || ""),
+    project: String(row.project || "Empreendimento não informado"),
+    block: String(row.block || ""),
+    unit: String(row.unit || row.pep || ""),
+    floor: String(row.floor || ""),
+    stack: String(row.stack || ""),
+    area: n(row.area),
+    parking: n(row.parking),
+    tableNominal: n(row.tableNominal),
+    tableNpv: n(row.tableNpv || row.tableNominal),
+    gorduraRate: n(row.gorduraRate),
+    status: String(row.status || "Disponível"),
+    exchange: Boolean(row.exchange),
+    category: String(row.category || "Sem categoria"),
+    base100Factor: BASE100_FACTOR,
   };
 }
 
-export function calculationLine(sourceRecord) {
-  const record = normalizeRecord(sourceRecord);
-  const actualCommercialCost =
-    monetaryCost(record, "commissionValue", "commissionRate") + record.bonusValue;
-  const budgetCommercialCost =
-    monetaryCost(
-      record,
-      "budgetCommissionValue",
-      "budgetCommissionRate",
-      "referenceNominal",
-    ) + record.budgetBonusValue;
-  const actualNet = record.proposalNpv - actualCommercialCost;
-  const referenceNet = record.referenceNpv - budgetCommercialCost;
+export function normalizeProposal(row = {}) {
+  const tableNominal = n(row.tableNominal);
+  const tableNpv = n(row.tableNpv || tableNominal);
+  const gorduraRate = n(row.gorduraRate);
+  const referenceNominal = n(row.referenceNominal) || tableNominal * (1 - gorduraRate);
+  const referenceNpv = n(row.referenceNpv) || tableNpv * (1 - gorduraRate);
+  const proposalNominal = n(row.proposalNominal);
   return {
-    ...record,
-    actualCommercialCost,
-    budgetCommercialCost,
-    commissionVariance: actualCommercialCost - budgetCommercialCost,
-    nominalResult: ratio(record.proposalNominal, record.referenceNominal),
-    npvResult: ratio(record.proposalNpv, record.referenceNpv),
-    netCommercialResult: ratio(actualNet, referenceNet),
+    id: String(row.id || globalThis.crypto?.randomUUID?.() || Date.now()),
+    source: row.source || "import",
+    projectCode: String(row.projectCode || ""),
+    project: String(row.project || "Empreendimento não informado"),
+    pep: String(row.pep || row.unit || ""),
+    unit: String(row.unit || row.pep || ""),
+    block: String(row.block || ""),
+    category: String(row.category || ""),
+    proposalStatus: String(row.proposalStatus || row.status || "Realizada"),
+    contractStatus: String(row.contractStatus || ""),
+    accountingDate: row.accountingDate || "",
+    channel: String(row.channel || "Não informado"),
+    tableNominal, tableNpv, gorduraRate, referenceNominal, referenceNpv,
+    proposalNominal,
+    proposalNpv: n(row.proposalNpv) || proposalNominal,
+    commissionValue: n(row.commissionValue),
+    commissionRate: n(row.commissionRate),
+    bonusValue: n(row.bonusValue),
+    budgetCommissionRate: row.budgetCommissionRate == null ? BUDGET_COMMISSION_RATE : n(row.budgetCommissionRate),
+    base100Factor: BASE100_FACTOR,
+    active: row.source === "simulation" ? row.active !== false : isActiveStatus(row.proposalStatus || row.status, row.contractStatus),
+    note: String(row.note || ""),
   };
 }
 
-export function calculateMetrics(records) {
-  const active = records.map(normalizeRecord).filter((record) => record.active !== false);
-  if (!active.length) return emptyMetrics();
-
-  let nominalVgv = 0;
-  let npvRevenue = 0;
-  let referenceNominal = 0;
-  let referenceNpv = 0;
-  let proposalBase100 = 0;
-  let referenceBase100 = 0;
-  let actualCommercialCost = 0;
-  let budgetCommercialCost = 0;
-
-  for (const record of active) {
-    const factor = record.base100Factor || INITIAL_BASE100_FACTOR;
-    nominalVgv += record.proposalNominal;
-    npvRevenue += record.proposalNpv;
-    referenceNominal += record.referenceNominal;
-    referenceNpv += record.referenceNpv;
-    proposalBase100 += record.proposalNpv / factor;
-    referenceBase100 += record.referenceNpv / factor;
-    actualCommercialCost += monetaryCost(record, "commissionValue", "commissionRate");
-    actualCommercialCost += record.bonusValue;
-    budgetCommercialCost += monetaryCost(
-      record,
-      "budgetCommissionValue",
-      "budgetCommissionRate",
-      "referenceNominal",
-    );
-    budgetCommercialCost += record.budgetBonusValue;
-  }
-
+export function calculationLine(input) {
+  const r = normalizeProposal(input);
+  const actualCost = r.commissionValue || r.commissionRate * r.proposalNominal;
+  const commercialCost = actualCost + r.bonusValue;
+  const budgetCost = r.budgetCommissionRate * r.referenceNominal;
   return {
-    units: new Set(active.map((record) => `${record.project}::${record.unit || record.id}`)).size,
-    nominalVgv,
-    npvRevenue,
-    nominalResult: ratio(nominalVgv, referenceNominal),
-    npvResult: ratio(npvRevenue, referenceNpv),
-    base100NpvResult: ratio(proposalBase100, referenceBase100),
-    commercialCostRate: nominalVgv > 0 ? actualCommercialCost / nominalVgv : null,
-    commissionVariance: actualCommercialCost - budgetCommercialCost,
-    netCommercialResult: ratio(
-      npvRevenue - actualCommercialCost,
-      referenceNpv - budgetCommercialCost,
-    ),
+    ...r, commercialCost, budgetCost,
+    nominalResult: ratio(r.proposalNominal, r.referenceNominal),
+    npvResult: ratio(r.proposalNpv, r.referenceNpv),
+    realNominalResult: ratio(r.proposalNominal - commercialCost, r.referenceNominal - budgetCost),
+    realNpvResult: ratio(r.proposalNpv - commercialCost, r.referenceNpv - budgetCost),
   };
 }
 
-export function compareMetrics(realizedRecords, simulatedRecords) {
-  const realized = calculateMetrics(realizedRecords);
-  const proForma = calculateMetrics([...realizedRecords, ...simulatedRecords]);
-  const impact = {};
-
-  for (const key of Object.keys(realized)) {
-    if (realized[key] === null || proForma[key] === null) {
-      impact[key] = null;
-    } else {
-      impact[key] = proForma[key] - realized[key];
-    }
-  }
-
-  return { realized, proForma, impact };
+export function calculateMetrics(inputs = []) {
+  const rows = inputs.map(calculationLine).filter((r) => r.active);
+  const sums = rows.reduce((a, r) => {
+    a.proposalNominal += r.proposalNominal; a.proposalNpv += r.proposalNpv;
+    a.referenceNominal += r.referenceNominal; a.referenceNpv += r.referenceNpv;
+    a.commercialCost += r.commercialCost; a.budgetCost += r.budgetCost;
+    return a;
+  }, { proposalNominal:0, proposalNpv:0, referenceNominal:0, referenceNpv:0, commercialCost:0, budgetCost:0 });
+  return {
+    units: new Set(rows.map((r) => `${r.projectCode || r.project}:${r.pep || r.unit || r.id}`)).size,
+    nominalVgv: sums.proposalNominal,
+    nominalResult: ratio(sums.proposalNominal, sums.referenceNominal),
+    npvResult: ratio(sums.proposalNpv, sums.referenceNpv),
+    base100NpvResult: ratio(sums.proposalNpv, sums.referenceNpv),
+    commercialCostRate: sums.proposalNominal ? sums.commercialCost / sums.proposalNominal : null,
+    realNominalResult: ratio(sums.proposalNominal - sums.commercialCost, sums.referenceNominal - sums.budgetCost),
+    realNpvResult: ratio(sums.proposalNpv - sums.commercialCost, sums.referenceNpv - sums.budgetCost),
+  };
 }
 
-export function groupMetrics(records, field) {
-  const groups = new Map();
-  for (const record of records) {
-    const key = record[field] || "Não informado";
-    groups.set(key, [...(groups.get(key) || []), record]);
-  }
-  return [...groups.entries()]
-    .map(([label, rows]) => ({ label, ...calculateMetrics(rows) }))
-    .sort((a, b) => b.nominalVgv - a.nominalVgv);
+export function compareMetrics(realized, simulations) {
+  const a = calculateMetrics(realized);
+  const b = calculateMetrics([...realized, ...simulations.filter((r) => r.active !== false)]);
+  return { realized:a, proForma:b, impact:Object.fromEntries(Object.keys(a).map((key) => [key, a[key] == null || b[key] == null ? null : b[key] - a[key]])) };
+}
+
+export function projectPortfolio(state) {
+  const identifiers = new Set([
+    ...state.projects.map((p) => p.code || p.name),
+    ...state.units.map((u) => u.projectCode || u.project),
+    ...state.proposals.map((p) => p.projectCode || p.project),
+  ]);
+  return [...identifiers].filter(Boolean).map((id) => {
+    const project = state.projects.find((p) => (p.code || p.name) === id) || {};
+    const units = state.units.filter((u) => (u.projectCode || u.project) === id);
+    const proposals = state.proposals.filter((p) => (p.projectCode || p.project) === id);
+    const targets = state.targets.filter((t) => (t.projectCode || t.project) === id);
+    const metrics = calculateMetrics(proposals);
+    const totalUnits = project.totalUnits || units.length;
+    const available = units.filter((u) => clean(u.status).includes("dispon")).length;
+    const targetUnits = targets.reduce((sum, t) => sum + n(t.targetUnits), 0);
+    return { id, code:project.code || units[0]?.projectCode || "", name:project.name || units[0]?.project || proposals[0]?.project || id,
+      launchDate:project.launchDate || "", deliveryDate:project.deliveryDate || "", totalUnits, available, metrics,
+      targetUnits, targetAchievement:targetUnits ? metrics.units / targetUnits : null };
+  }).sort((a,b) => b.metrics.nominalVgv - a.metrics.nominalVgv);
+}
+
+export function statusTone(status, exchange = false) {
+  if (exchange) return "exchange";
+  const value = clean(status);
+  if (value.includes("fora")) return "blocked";
+  if (value.includes("vend") || value.includes("assin")) return "sold";
+  if (value.includes("process")) return "process";
+  if (value.includes("reserv")) return "reserved";
+  return "available";
 }
