@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Acompanhamento comercial integrado de empreendimentos imobiliários.">
+  <title>Acompanhamento de Projetos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=20260731">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script type="module" src="./src/app.js?v=20260731"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#" data-view="portfolio"><span>AP</span><strong>Acompanhamento<br>de Projetos</strong></a>
+    <nav>
+      <button class="nav-item active" data-view="portfolio">▦ <span>Carteira</span></button>
+      <button class="nav-item" data-view="detail">⌂ <span>Empreendimento</span></button>
+      <button class="nav-item" data-view="history">≡ <span>Histórico</span></button>
+      <button class="nav-item" data-view="simulator">◇ <span>Simulador</span></button>
+      <button class="nav-item settings-link" data-view="settings">⚙ <span>Configurações</span></button>
+    </nav>
+  </aside>
+
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow" id="breadcrumb">Visão comercial</p>
+        <h1 id="page-title">Carteira de produtos</h1>
+      </div>
+      <div class="top-actions">
+        <label class="select-label"><span>Produto</span><select id="project-select"><option value="">Todos</option></select></label>
+        <button class="button primary" data-view="settings">Atualizar bases</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="view active" id="view-portfolio">
+        <div class="intro">
+          <div><p class="eyebrow">Portfólio comercial</p><h2>Decisões rápidas, com contexto de cada produto.</h2></div>
+          <p>Vendas ativas, metas e resultado comercial consolidados por empreendimento.</p>
+        </div>
+        <div class="portfolio-toolbar">
+          <label>Ordenar por <select id="portfolio-sort"><option value="vgv">VGV vendido</option><option value="result">Resultado real VPL</option><option value="sales">Vendas</option><option value="target">Atingimento BP</option><option value="name">Nome</option></select></label>
+          <span id="portfolio-count">0 produtos</span>
+        </div>
+        <div class="product-grid" id="product-grid"></div>
+      </section>
+
+      <section class="view" id="view-detail">
+        <div id="project-header" class="project-header empty-card">Selecione um produto na carteira.</div>
+        <div class="kpi-grid" id="project-kpis"></div>
+        <div class="detail-grid">
+          <article class="panel matrix-panel">
+            <div class="panel-head"><div><p class="eyebrow">Estoque</p><h2>Matriz de unidades</h2></div><div class="legend"><span class="available">Disponível</span><span class="reserved">Reservada</span><span class="process">Em processo</span><span class="sold">Vendida</span><span class="exchange">Permuta</span></div></div>
+            <div class="matrix" id="unit-matrix"></div>
+          </article>
+          <aside class="panel unit-detail" id="unit-detail">
+            <p class="eyebrow">Unidade</p><h2>Nenhuma selecionada</h2><p>Clique em uma célula da matriz para abrir características e simular uma proposta.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-history">
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">Auditoria comercial</p><h2>Histórico analítico</h2></div><button class="button subtle" id="export-history">Exportar CSV</button></div>
+          <div class="filters">
+            <input id="history-search" placeholder="Buscar proposta, unidade ou canal">
+            <select id="history-status"><option value="">Todos os status</option></select>
+            <select id="history-category"><option value="">Todas as categorias</option></select>
+            <select id="history-result"><option value="">Todos os resultados</option><option value="negative">Abaixo da referência</option><option value="positive">Na referência ou acima</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Proposta</th><th>Unidade</th><th>Data</th><th>Tabela</th><th>BP</th><th>Proposta</th><th>VPL</th><th>Comissão + prêmio</th><th>Nominal</th><th>Real</th><th>Real VPL</th></tr></thead><tbody id="history-table"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-simulator">
+        <div class="simulator-layout">
+          <form class="panel simulation-form" id="simulation-form">
+            <div><p class="eyebrow">Nova negociação</p><h2>Simular proposta</h2><p class="muted">Escolha uma unidade disponível e informe as condições comerciais.</p></div>
+            <label>Unidade<select name="pep" id="simulation-unit" required><option value="">Selecione</option></select></label>
+            <div class="form-grid">
+              <label>Proposta nominal<input name="proposalNominal" inputmode="decimal" required></label>
+              <label>Proposta VPL<input name="proposalNpv" inputmode="decimal" required></label>
+              <label>Comissão (%)<input name="commissionRate" inputmode="decimal" value="5"></label>
+              <label>Prêmio (R$)<input name="bonusValue" inputmode="decimal" value="0"></label>
+              <label>Canal<input name="channel" placeholder="Ex.: Parceria"></label>
+              <label>ID da proposta<input name="id" placeholder="Gerado automaticamente"></label>
+            </div>
+            <label>Defesa comercial<textarea name="note" rows="3" placeholder="Contexto e justificativa da negociação"></textarea></label>
+            <button class="button primary" type="submit">Adicionar ao pro forma</button>
+          </form>
+          <div>
+            <article class="panel impact-panel"><div class="panel-head"><div><p class="eyebrow">Impacto consolidado</p><h2>Realizado x Pro forma</h2></div><span id="simulation-count">0 propostas ativas</span></div><div class="comparison" id="comparison"></div></article>
+            <article class="panel simulation-list-panel"><div class="panel-head"><h2>Propostas do cenário</h2></div><div id="simulation-list" class="simulation-list"></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="intro"><div><p class="eyebrow">Administração</p><h2>Bases e conciliação</h2></div><p>Cada base pode ser atualizada no seu próprio ritmo. O processamento acontece apenas neste navegador.</p></div>
+        <div class="import-grid" id="import-grid"></div>
+        <article class="panel quality-panel">
+          <div class="panel-head"><div><p class="eyebrow">Qualidade dos dados</p><h2>Conciliação atual</h2></div><button class="button danger subtle" id="clear-data">Limpar dados locais</button></div>
+          <div class="quality-grid" id="quality-grid"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <input id="file-input" type="file" accept=".xlsx,.xls,.csv" hidden>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
