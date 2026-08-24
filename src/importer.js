@@ -21,6 +21,7 @@ const aliases = {
     accountingDate:["data contabil","data aprovacao","data venda"], channel:["empresa de venda","empresa vendas","canal","imobiliaria"],
     tableNominal:["valor tabela","tabela"], tableNpv:["valor tabela vpl","tabela vpl"], gorduraRate:["gordura","percentual gordura"],
     proposalNominal:["valor proposta","proposta nominal","valor venda"], proposalNpv:["valor proposta vpl","proposta vpl","vpl proposta"],
+    correctedProposalNominal:["valor proposta corrigido","proposta corrigida","valor corrigido"],
     commissionValue:["total comissao","valor comissao"], commissionRate:["percentual comissao","comissao"], bonusValue:["total premio","valor premio","premio"],
   },
   units: {
@@ -64,7 +65,7 @@ export function rowsToDataset(rows, type) {
         block:get("block"), proposalStatus:get("proposalStatus"), contractStatus:get("contractStatus"), accountingDate:get("accountingDate"),
         channel:get("channel"), tableNominal:parseNumber(get("tableNominal")), tableNpv:parseNumber(get("tableNpv")),
         gorduraRate:parseNumber(get("gorduraRate")), proposalNominal:parseNumber(get("proposalNominal")),
-        proposalNpv:parseNumber(get("proposalNpv")), commissionValue:parseNumber(get("commissionValue")),
+        proposalNpv:parseNumber(get("proposalNpv")), correctedProposalNominal:parseNumber(get("correctedProposalNominal")), commissionValue:parseNumber(get("commissionValue")),
         commissionRate:rate > 1 ? rate/100 : rate, bonusValue:parseNumber(get("bonusValue")), base100Factor:BASE100_FACTOR,
       });
     }
@@ -116,6 +117,6 @@ export function reconcile(state) {
   const categoriesByPep=new Map(state.categories.map((c)=>[unitKey(c.pep),c.category]));
   const units=state.units.map((u)=>({ ...u, project:projectsByCode.get(u.projectCode)?.name || u.project, category:categoriesByPep.get(unitKey(u.pep)) || u.category }));
   const unitsByPep=new Map(units.map((u)=>[unitKey(u.pep),u]));
-  const proposals=state.proposals.map((p)=>{ const u=unitsByPep.get(unitKey(p.pep || p.unit)); return normalizeProposal({ ...p, ...(u ? { projectCode:u.projectCode, project:u.project, pep:u.pep, unit:u.unit, block:u.block, category:u.category, tableNominal:p.tableNominal||u.tableNominal, tableNpv:p.tableNpv||u.tableNpv, gorduraRate:p.gorduraRate||u.gorduraRate } : {}) }); });
+  const proposals=state.proposals.map((p)=>{ const u=unitsByPep.get(unitKey(p.pep || p.unit)); return normalizeProposal({ ...p, ...(u ? { projectCode:u.projectCode, project:u.project, pep:u.pep, unit:u.unit, block:u.block, floor:u.floor, stack:u.stack, area:u.area, category:u.category, tableNominal:p.tableNominal||u.tableNominal, tableNpv:p.tableNpv||u.tableNpv, gorduraRate:p.gorduraRate||u.gorduraRate } : {}) }); });
   return { ...state, units, proposals };
 }

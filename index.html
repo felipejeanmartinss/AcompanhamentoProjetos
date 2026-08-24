@@ -7,46 +7,52 @@
   <title>Acompanhamento de Projetos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=20260731">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=20260824">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-  <script type="module" src="./src/app.js?v=20260731"></script>
+  <script type="module" src="./src/app.js?v=20260824"></script>
 </head>
 <body>
   <aside class="sidebar">
     <a class="brand" href="#" data-view="portfolio"><span>AP</span><strong>Acompanhamento<br>de Projetos</strong></a>
     <nav>
       <button class="nav-item active" data-view="portfolio">▦ <span>Carteira</span></button>
-      <button class="nav-item" data-view="detail">⌂ <span>Empreendimento</span></button>
+      <button class="nav-item" data-view="summary">◫ <span>Resumo</span></button>
+      <button class="nav-item" data-view="detail">⌂ <span>Disponibilidade</span></button>
       <button class="nav-item" data-view="history">≡ <span>Histórico</span></button>
-      <button class="nav-item" data-view="simulator">◇ <span>Simulador</span></button>
+      <button class="nav-item" data-view="simulator">◇ <span>Simulação</span></button>
       <button class="nav-item settings-link" data-view="settings">⚙ <span>Configurações</span></button>
     </nav>
   </aside>
 
   <div class="shell">
     <header class="topbar">
-      <div>
-        <p class="eyebrow" id="breadcrumb">Visão comercial</p>
-        <h1 id="page-title">Carteira de produtos</h1>
-      </div>
+      <div><p class="eyebrow" id="breadcrumb">Visão comercial</p><h1 id="page-title">Carteira de produtos</h1></div>
       <div class="top-actions">
         <label class="select-label"><span>Produto</span><select id="project-select"><option value="">Todos</option></select></label>
-        <button class="button primary" data-view="settings">Atualizar bases</button>
+        <button class="button accent" data-view="settings">Atualizar bases</button>
       </div>
     </header>
 
     <main>
       <section class="view active" id="view-portfolio">
-        <div class="intro">
-          <div><p class="eyebrow">Portfólio comercial</p><h2>Decisões rápidas, com contexto de cada produto.</h2></div>
-          <p>Vendas ativas, metas e resultado comercial consolidados por empreendimento.</p>
-        </div>
-        <div class="portfolio-toolbar">
-          <label>Ordenar por <select id="portfolio-sort"><option value="vgv">VGV vendido</option><option value="result">Resultado real VPL</option><option value="sales">Vendas</option><option value="target">Atingimento BP</option><option value="name">Nome</option></select></label>
-          <span id="portfolio-count">0 produtos</span>
-        </div>
+        <div class="intro"><div><p class="eyebrow">Portfólio comercial</p><h2>Decisões rápidas, com contexto de cada produto.</h2></div><p>Vendas ativas, metas e resultado comercial consolidados por empreendimento.</p></div>
+        <div class="portfolio-toolbar"><label>Ordenar por <select id="portfolio-sort"><option value="vgv">VGV vendido</option><option value="result">Resultado real VPL</option><option value="sales">Vendas</option><option value="target">Atingimento BP</option><option value="name">Nome</option></select></label><span id="portfolio-count">0 produtos</span></div>
         <div class="product-grid" id="product-grid"></div>
+      </section>
+
+      <section class="view" id="view-summary">
+        <div class="page-head"><div><p class="eyebrow">Dashboard executivo</p><h2 id="summary-title">Resumo do produto</h2><p class="muted">Vendas, BP, cancelamentos e evolução do preço por metro quadrado.</p></div><label class="compact-control">Ano<select id="summary-year"></select></label></div>
+        <div class="kpi-grid summary-kpis" id="summary-kpis"></div>
+        <article class="panel summary-chart-panel">
+          <div class="panel-head"><div><p class="eyebrow">Evolução mensal</p><h2>Unidades e preço médio</h2></div><span class="info-pill">Cancelamentos abaixo de zero</span></div>
+          <div class="chart-scroll"><svg id="summary-chart" role="img" aria-label="Gráfico mensal de vendas, BP, cancelamentos e preço por metro quadrado"></svg></div>
+          <div class="chart-legend" id="summary-legend"></div>
+        </article>
+        <article class="panel summary-analytic-panel" id="summary-analytic-panel">
+          <div class="panel-head"><div><p class="eyebrow">Analítico</p><h2>Últimas movimentações</h2></div><button class="button subtle" data-view="history">Abrir histórico completo</button></div>
+          <div class="table-wrap"><table class="compact-table"><thead><tr><th>Proposta</th><th>Unidade</th><th>Data</th><th>Proposta</th><th>R$/m² nominal</th><th>R$/m² corrigido</th><th>Status</th></tr></thead><tbody id="summary-analytic-body"></tbody></table></div>
+        </article>
       </section>
 
       <section class="view" id="view-detail">
@@ -54,24 +60,19 @@
         <div class="kpi-grid" id="project-kpis"></div>
         <div class="detail-grid">
           <article class="panel matrix-panel">
-            <div class="panel-head"><div><p class="eyebrow">Estoque</p><h2>Matriz de unidades</h2></div><div class="legend"><span class="available">Disponível</span><span class="reserved">Reservada</span><span class="process">Em processo</span><span class="sold">Vendida</span><span class="exchange">Permuta</span></div></div>
-            <div class="matrix" id="unit-matrix"></div>
+            <div class="panel-head"><div><p class="eyebrow">Implantação completa</p><h2>Disponibilidade</h2></div><div class="matrix-toolbar"><button class="button toggle active" data-availability-mode="unit">Unidade</button><button class="button toggle" data-availability-mode="status">Status</button><button class="button toggle" data-availability-mode="price">R$/m²</button></div></div>
+            <div class="visual-canvas-scroll"><div id="availability-visual"></div></div>
+            <div class="legend status-legend"><span class="available">Disponível</span><span class="reserved">Reservada</span><span class="process">Em processo</span><span class="sold">Vendida</span><span class="exchange">Permuta</span></div>
           </article>
-          <aside class="panel unit-detail" id="unit-detail">
-            <p class="eyebrow">Unidade</p><h2>Nenhuma selecionada</h2><p>Clique em uma célula da matriz para abrir características e simular uma proposta.</p>
-          </aside>
+          <aside class="panel unit-detail" id="unit-detail"><p class="eyebrow">Unidade</p><h2>Nenhuma selecionada</h2><p>Clique em uma célula da implantação para abrir características e simular uma proposta.</p></aside>
         </div>
+        <article class="panel category-panel"><div class="panel-head"><div><p class="eyebrow">Leitura do estoque</p><h2>Resumo por categorias</h2></div></div><div class="table-wrap"><table class="compact-table"><thead id="category-summary-head"></thead><tbody id="category-summary-body"></tbody></table></div></article>
       </section>
 
       <section class="view" id="view-history">
         <article class="panel">
           <div class="panel-head"><div><p class="eyebrow">Auditoria comercial</p><h2>Histórico analítico</h2></div><button class="button subtle" id="export-history">Exportar CSV</button></div>
-          <div class="filters">
-            <input id="history-search" placeholder="Buscar proposta, unidade ou canal">
-            <select id="history-status"><option value="">Todos os status</option></select>
-            <select id="history-category"><option value="">Todas as categorias</option></select>
-            <select id="history-result"><option value="">Todos os resultados</option><option value="negative">Abaixo da referência</option><option value="positive">Na referência ou acima</option></select>
-          </div>
+          <div class="filters"><input id="history-search" placeholder="Buscar proposta, unidade ou canal"><select id="history-status"><option value="">Todos os status</option></select><select id="history-category"><option value="">Todas as categorias</option></select><select id="history-result"><option value="">Todos os resultados</option><option value="negative">Abaixo da referência</option><option value="positive">Na referência ou acima</option></select></div>
           <div class="table-wrap"><table><thead><tr><th>Proposta</th><th>Unidade</th><th>Data</th><th>Tabela</th><th>BP</th><th>Proposta</th><th>VPL</th><th>Comissão + prêmio</th><th>Nominal</th><th>Real</th><th>Real VPL</th></tr></thead><tbody id="history-table"></tbody></table></div>
         </article>
       </section>
@@ -79,37 +80,56 @@
       <section class="view" id="view-simulator">
         <div class="simulator-layout">
           <form class="panel simulation-form" id="simulation-form">
-            <div><p class="eyebrow">Nova negociação</p><h2>Simular proposta</h2><p class="muted">Escolha uma unidade disponível e informe as condições comerciais.</p></div>
-            <label>Unidade<select name="pep" id="simulation-unit" required><option value="">Selecione</option></select></label>
-            <div class="form-grid">
-              <label>Proposta nominal<input name="proposalNominal" inputmode="decimal" required></label>
-              <label>Proposta VPL<input name="proposalNpv" inputmode="decimal" required></label>
-              <label>Comissão (%)<input name="commissionRate" inputmode="decimal" value="5"></label>
-              <label>Prêmio (R$)<input name="bonusValue" inputmode="decimal" value="0"></label>
-              <label>Canal<input name="channel" placeholder="Ex.: Parceria"></label>
-              <label>ID da proposta<input name="id" placeholder="Gerado automaticamente"></label>
-            </div>
-            <label>Defesa comercial<textarea name="note" rows="3" placeholder="Contexto e justificativa da negociação"></textarea></label>
-            <button class="button primary" type="submit">Adicionar ao pro forma</button>
+            <div><p class="eyebrow">Entrada da proposta</p><h2>Simular negociação</h2><p class="muted">Dados essenciais para análise comercial.</p></div>
+            <label>PEP / unidade<select name="pep" id="simulation-unit" required><option value="">Selecione</option></select></label>
+            <div class="simulation-reference" id="simulation-reference"></div>
+            <div class="form-grid"><label>Canal<input name="channel" placeholder="Ex.: Parceria"></label><label>ID da proposta<input name="id" placeholder="Gerado automaticamente"></label><label>Proposta nominal<input name="proposalNominal" inputmode="decimal" required></label><label>Proposta VPL<input name="proposalNpv" inputmode="decimal" required></label><label>Comissão (%)<input name="commissionRate" inputmode="decimal" value="5"></label><label>Prêmio (R$)<input name="bonusValue" inputmode="decimal" value="0"></label></div>
+            <label>Observações<textarea name="note" rows="3" placeholder="Contexto e justificativa da negociação"></textarea></label>
+            <button class="button accent" type="submit">Adicionar ao pro forma</button>
           </form>
-          <div>
-            <article class="panel impact-panel"><div class="panel-head"><div><p class="eyebrow">Impacto consolidado</p><h2>Realizado x Pro forma</h2></div><span id="simulation-count">0 propostas ativas</span></div><div class="comparison" id="comparison"></div></article>
-            <article class="panel simulation-list-panel"><div class="panel-head"><h2>Propostas do cenário</h2></div><div id="simulation-list" class="simulation-list"></div></article>
-          </div>
+          <article class="panel defense-panel">
+            <div class="panel-head"><div><p class="eyebrow">Defesa comercial</p><h2 id="defense-title">Resumo da proposta</h2></div><span class="info-pill">Atualização em tempo real</span></div>
+            <section class="defense-section" id="defense-summary-section"><h3>1. Resumo da proposta</h3><div class="defense-summary" id="defense-summary"></div></section>
+            <section class="defense-section" id="defense-flow-section"><h3>2. Comparativo do fluxo</h3><div class="table-wrap"><table class="compact-table"><thead><tr><th>Referência</th><th>Valor</th><th>Proposta</th><th>Diferença</th></tr></thead><tbody id="defense-flow"></tbody></table></div></section>
+            <section class="defense-section" id="defense-visual-section"><div class="section-head"><h3>3. Implantação completa</h3><span>Unidade selecionada em destaque</span></div><div class="visual-canvas-scroll compact-visual"><div id="simulation-visual"></div></div></section>
+            <section class="defense-section" id="defense-sales-section"><h3>4. Últimas vendas similares</h3><div class="table-wrap"><table class="compact-table"><thead><tr><th>Unidade</th><th>Data</th><th>Proposta</th><th>R$/m²</th></tr></thead><tbody id="similar-sales-body"></tbody></table></div></section>
+          </article>
         </div>
+        <article class="panel impact-panel"><div class="panel-head"><div><p class="eyebrow">Impacto consolidado</p><h2>Realizado x Pro forma</h2></div><span id="simulation-count">0 propostas ativas</span></div><div class="comparison" id="comparison"></div></article>
+        <article class="panel simulation-list-panel"><div class="panel-head"><h2>Propostas do cenário</h2></div><div id="simulation-list" class="simulation-list"></div></article>
       </section>
 
       <section class="view" id="view-settings">
-        <div class="intro"><div><p class="eyebrow">Administração</p><h2>Bases e conciliação</h2></div><p>Cada base pode ser atualizada no seu próprio ritmo. O processamento acontece apenas neste navegador.</p></div>
-        <div class="import-grid" id="import-grid"></div>
-        <article class="panel quality-panel">
-          <div class="panel-head"><div><p class="eyebrow">Qualidade dos dados</p><h2>Conciliação atual</h2></div><button class="button danger subtle" id="clear-data">Limpar dados locais</button></div>
-          <div class="quality-grid" id="quality-grid"></div>
-        </article>
+        <div class="intro"><div><p class="eyebrow">Administração</p><h2>Configurações da experiência</h2></div><p>Preferências globais e implantação individual de cada empreendimento.</p></div>
+        <div class="settings-layout">
+          <aside class="settings-nav" aria-label="Seções de configuração"><button class="active" data-settings-pane="general">1. Geral e importações</button><button data-settings-pane="summary">2. Resumo</button><button data-settings-pane="availability">3. Disponibilidade</button><button data-settings-pane="simulation">4. Simulação</button><button data-settings-pane="sharing">5. Compartilhamento</button><button data-settings-pane="visual">6. Implantação por produto</button></aside>
+          <div class="settings-content">
+            <section class="settings-pane active" id="settings-pane-general">
+              <article class="panel config-section"><div class="panel-head"><div><p class="eyebrow">Bases globais</p><h2>Geral e importações</h2><p class="muted">Bases, De/Para, categorias e parâmetros compartilhados.</p></div></div><div class="import-grid" id="import-grid"></div></article>
+              <article class="panel quality-panel"><div class="panel-head"><div><p class="eyebrow">Qualidade dos dados</p><h2>Conciliação atual</h2></div><button class="button danger subtle" id="clear-data">Limpar dados locais</button></div><div class="quality-grid" id="quality-grid"></div></article>
+            </section>
+            <section class="settings-pane" id="settings-pane-summary"><article class="panel config-section"><div class="panel-head"><div><p class="eyebrow">Dashboard executivo</p><h2>Resumo</h2><p class="muted">Escolha os KPIs, as séries e as cores do gráfico.</p></div></div><div class="setting-card-grid"><div class="setting-card"><h3>Séries e cores</h3><div id="summary-series-settings" class="settings-list"></div></div><div class="setting-card"><h3>KPIs no topo</h3><div id="summary-kpi-settings" class="settings-list"></div></div><div class="setting-card"><h3>Analítico</h3><label class="check-row"><input type="checkbox" data-config="summary.showAnalytic"> Exibir tabela analítica no Resumo</label></div></div></article></section>
+            <section class="settings-pane" id="settings-pane-availability"><article class="panel config-section"><div class="panel-head"><div><p class="eyebrow">Matriz visual</p><h2>Disponibilidade</h2><p class="muted">Conteúdo dos tooltips, resumo de categorias e comportamento.</p></div></div><div class="setting-card-grid"><div class="setting-card"><h3>Conteúdo do tooltip</h3><div id="availability-tooltip-settings" class="settings-list"></div></div><div class="setting-card"><h3>Resumo por categorias</h3><div id="availability-category-settings" class="settings-list"></div></div><div class="setting-card"><h3>Visualização inicial</h3><select data-config="availability.defaultMode"><option value="unit">Unidade</option><option value="status">Status</option><option value="price">R$/m²</option></select></div></div></article></section>
+            <section class="settings-pane" id="settings-pane-simulation"><article class="panel config-section"><div class="panel-head"><div><p class="eyebrow">Análise comercial</p><h2>Simulação</h2><p class="muted">Elementos da defesa e critérios de vendas similares.</p></div></div><div class="setting-card-grid"><div class="setting-card"><h3>Defesa executiva</h3><div id="simulation-display-settings" class="settings-list"></div></div><div class="setting-card"><h3>Vendas similares</h3><label>Quantidade exibida<input type="number" min="1" max="10" data-config="simulation.similarSalesLimit"></label><p class="muted">Priorização atual: mesma categoria ou prumada.</p></div></div></article></section>
+            <section class="settings-pane" id="settings-pane-sharing"><article class="panel config-section"><div class="panel-head"><div><p class="eyebrow">Defesa compartilhável</p><h2>Compartilhamento</h2><p class="muted">Mensagem, assinatura, rodapé e conteúdo enviado.</p></div></div><div class="setting-card-grid"><div class="setting-card wide"><label>Mensagem padrão<textarea data-config="sharing.message"></textarea></label><label>Assinatura<input data-config="sharing.signature"></label><label>Rodapé<input data-config="sharing.footer"></label></div><div class="setting-card"><h3>Elementos exibidos</h3><label class="check-row"><input type="checkbox" data-config="sharing.showVisualAvailability"> Implantação minimizada</label><label class="check-row"><input type="checkbox" data-config="sharing.showSimilarSales"> Vendas similares</label></div></div></article></section>
+            <section class="settings-pane" id="settings-pane-visual">
+              <article class="panel config-section">
+                <div class="panel-head"><div><p class="eyebrow">Editor por empreendimento</p><h2>Implantação por Produto</h2><p class="muted">Imagem 2D, matriz, blocos, prumadas e unidades especiais.</p></div><button class="button accent" id="save-visual-config">Salvar implantação</button></div>
+                <div class="product-config-grid"><label>Produto<select id="visual-product-select"></select></label><label>Código SAP<input id="visual-sap-code"></label><label>Nome comercial<input id="visual-product-name"></label><label>Regional<input id="visual-regional" placeholder="Ex.: RJ"></label></div>
+                <div class="image-config-bar"><div><strong>Imagem da implantação</strong><span>PNG, JPG ou WEBP com até 2,5 MB</span></div><button class="button subtle" id="visual-image-upload">Selecionar imagem</button><button class="button subtle danger" id="visual-image-remove">Remover</button><label>Escala da imagem <input id="visual-background-scale" type="range" min="0.6" max="2" step="0.05"></label></div>
+                <div class="editor-help"><span>Arraste os blocos para posicioná-los sobre a implantação.</span><span>Use −/+ em cada bloco para ajustar seu tamanho.</span></div>
+                <div class="visual-canvas-scroll editor-scroll"><div id="implantation-editor"></div></div>
+                <div class="preview-head"><div><p class="eyebrow">Preview reutilizável</p><h3>Como será exibido em Disponibilidade</h3></div><span class="info-pill">Mesma configuração visual</span></div>
+                <div class="visual-canvas-scroll compact-visual"><div id="implantation-preview"></div></div>
+              </article>
+            </section>
+          </div>
+        </div>
       </section>
     </main>
   </div>
   <input id="file-input" type="file" accept=".xlsx,.xls,.csv" hidden>
+  <input id="visual-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

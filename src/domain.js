@@ -47,6 +47,8 @@ export function normalizeProposal(row = {}) {
     pep: String(row.pep || row.unit || ""),
     unit: String(row.unit || row.pep || ""),
     block: String(row.block || ""),
+    floor: String(row.floor || ""),
+    stack: String(row.stack || ""),
     category: String(row.category || ""),
     proposalStatus: String(row.proposalStatus || row.status || "Realizada"),
     contractStatus: String(row.contractStatus || ""),
@@ -55,6 +57,8 @@ export function normalizeProposal(row = {}) {
     tableNominal, tableNpv, gorduraRate, referenceNominal, referenceNpv,
     proposalNominal,
     proposalNpv: n(row.proposalNpv) || proposalNominal,
+    correctedProposalNominal: n(row.correctedProposalNominal) || proposalNominal,
+    area: n(row.area),
     commissionValue: n(row.commissionValue),
     commissionRate: n(row.commissionRate),
     bonusValue: n(row.bonusValue),
@@ -63,6 +67,42 @@ export function normalizeProposal(row = {}) {
     active: row.source === "simulation" ? row.active !== false : isActiveStatus(row.proposalStatus || row.status, row.contractStatus),
     note: String(row.note || ""),
   };
+}
+
+export function dateParts(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return { year:value.getFullYear(), month:value.getMonth()+1 };
+  const text=String(value || "").trim();
+  let match=text.match(/^(\d{4})[-/]?(\d{2})/);
+  if (match) return { year:Number(match[1]), month:Number(match[2]) };
+  match=text.match(/^(\d{1,2})[-/](\d{4})$/);
+  if (match) return { year:Number(match[2]), month:Number(match[1]) };
+  match=text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (match) return { year:Number(match[3]), month:Number(match[2]) };
+  const date=new Date(text);
+  return Number.isNaN(date.getTime()) ? null : { year:date.getFullYear(), month:date.getMonth()+1 };
+}
+
+export function monthlySummary(proposals = [], targets = [], year = new Date().getFullYear()) {
+  const months=Array.from({length:12},(_,index)=>({
+    month:index+1, salesUnits:0, bpUnits:0, cancellations:0, salesVgv:0, bpVgv:0,
+    nominalPrice:0, correctedPrice:0, soldArea:0, correctedVgv:0,
+  }));
+  targets.forEach((target)=>{
+    const parts=dateParts(target.month); if(!parts||parts.year!==Number(year)||parts.month<1||parts.month>12)return;
+    const item=months[parts.month-1]; item.bpUnits+=n(target.targetUnits); item.bpVgv+=n(target.targetVgv);
+  });
+  proposals.map(normalizeProposal).forEach((proposal)=>{
+    const parts=dateParts(proposal.accountingDate); if(!parts||parts.year!==Number(year)||parts.month<1||parts.month>12)return;
+    const item=months[parts.month-1];
+    if (!proposal.active) { item.cancellations+=1; return; }
+    item.salesUnits+=1; item.salesVgv+=proposal.proposalNominal;
+    if(proposal.area>0){ item.soldArea+=proposal.area; item.correctedVgv+=proposal.correctedProposalNominal; }
+  });
+  return months.map((item)=>({
+    ...item,
+    nominalPrice:item.soldArea ? item.salesVgv/item.soldArea : 0,
+    correctedPrice:item.soldArea ? item.correctedVgv/item.soldArea : 0,
+  }));
 }
 
 export function calculationLine(input) {

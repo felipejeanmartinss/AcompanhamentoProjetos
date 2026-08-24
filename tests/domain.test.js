@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BASE100_FACTOR, calculateMetrics, calculationLine, compareMetrics, isActiveStatus, normalizeProposal, projectPortfolio, statusTone } from "../src/domain.js";
+import { BASE100_FACTOR, calculateMetrics, calculationLine, compareMetrics, isActiveStatus, monthlySummary, normalizeProposal, projectPortfolio, statusTone } from "../src/domain.js";
+import { hydrateAppConfig } from "../src/config.js";
 import { detectColumns, parseNumber, reconcile, rowsToDataset } from "../src/importer.js";
+import { syncProductVisualConfig } from "../src/visual.js";
 
 const sale = normalizeProposal({
   id:"V1", projectCode:"P1", project:"Singular", pep:"AP0901",
@@ -84,4 +86,38 @@ test("prioriza permuta na matriz", () => {
   assert.equal(statusTone("Disponível",true),"exchange");
   assert.equal(statusTone("Contrato em processo"),"process");
   assert.equal(statusTone("Vendida"),"sold");
+});
+
+test("resume vendas, BP, cancelamentos e preços mensais sem inverter o sinal dos dados", () => {
+  const proposals=[
+    normalizeProposal({ id:"A",projectCode:"P1",pep:"1",accountingDate:"2026-03-10",proposalStatus:"Vendida",proposalNominal:1_000_000,correctedProposalNominal:1_050_000,area:100 }),
+    normalizeProposal({ id:"B",projectCode:"P1",pep:"2",accountingDate:"15/03/2026",proposalStatus:"Cancelada",proposalNominal:900_000,area:90 }),
+  ];
+  const months=monthlySummary(proposals,[{projectCode:"P1",month:"2026-03",targetUnits:2,targetVgv:1_800_000}],2026);
+  assert.equal(months[2].salesUnits,1);
+  assert.equal(months[2].bpUnits,2);
+  assert.equal(months[2].cancellations,1);
+  assert.equal(months[2].nominalPrice,10_000);
+  assert.equal(months[2].correctedPrice,10_500);
+});
+
+test("hidrata preferências do gráfico com cores nominais e corrigidas distintas", () => {
+  const config=hydrateAppConfig({summary:{chart:{salesColor:"#111111"}}});
+  assert.equal(config.summary.chart.salesColor,"#111111");
+  assert.notEqual(config.summary.chart.nominalPriceColor,config.summary.chart.correctedPriceColor);
+  assert.equal(config.summary.chart.showCancellations,true);
+});
+
+test("mantém implantação e posições isoladas por produto", () => {
+  const units=[
+    {pep:"A1",block:"Torre A",stack:"1",floor:"1",unit:"101"},
+    {pep:"A2",block:"Torre A",stack:"1",floor:"2",unit:"201"},
+  ];
+  const first=syncProductVisualConfig({}, {id:"P1",name:"Produto 1",code:"P1"}, units);
+  first.blocks[0].x=42;
+  const saved=syncProductVisualConfig(first, {id:"P1",name:"Produto 1",code:"P1"}, units);
+  const second=syncProductVisualConfig({}, {id:"P2",name:"Produto 2",code:"P2"}, [{...units[0],pep:"B1"}]);
+  assert.equal(saved.blocks[0].x,42);
+  assert.notEqual(second.productId,saved.productId);
+  assert.deepEqual(saved.blocks[0].columns[0].unitIds,["A2","A1"]);
 });

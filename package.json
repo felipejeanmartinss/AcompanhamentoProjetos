@@ -1,12 +1,12 @@
 {
   "name": "acompanhamento-projetos",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "serve": "node scripts/server.mjs",
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/app.js && node --check src/domain.js && node --check src/importer.js && node --check src/store.js",
+    "check": "node --check src/app.js && node --check src/config.js && node --check src/domain.js && node --check src/importer.js && node --check src/store.js && node --check src/visual.js",
     "validate": "npm run check && npm test"
   },
   "engines": { "node": ">=20" }

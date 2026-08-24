@@ -11,6 +11,8 @@ O estado da aplicação é separado em entidades que podem migrar do `localStora
 | `categories` | PEP | Categorias das Unidades |
 | `simulations` | ID da simulação | Entrada do usuário |
 | `imports` | Tipo da base | Metadados do lote importado |
+| `appConfig` | Global | Preferências de Resumo, Disponibilidade, Simulação e Compartilhamento |
+| `productVisualConfigs` | Código SAP / ID do produto | Identificação, imagem 2D, blocos, prumadas, posições e escalas |
 
 ## Conciliação
 
@@ -34,6 +36,14 @@ PEP é normalizado para comparação sem espaços, hífens ou pontuação. Códi
 
 Base 100 permanece fixa em `1` nesta etapa. O campo já existe no modelo para futura versionagem de diferenciais.
 
+## Configuração visual
+
+`productVisualConfigs` é um mapa indexado pelo mesmo identificador usado na conciliação do produto. Cada entrada contém `productId`, `productName`, `sapCode`, `regional`, `backgroundImage`, `backgroundScale` e `blocks`.
+
+Cada bloco registra `blockId`, `label`, `x`, `y`, `scale`, `columns` e `unitOrder`. As colunas guardam seus identificadores, ordem e PEPs associados. A matriz nasce das unidades importadas; a configuração acrescenta apenas a composição visual. O renderizador em `src/visual.js` é compartilhado por Disponibilidade, Simulação e preview do editor.
+
+`appConfig.summary.chart` mantém cores e visibilidade das cinco séries. A configuração é global nesta versão, mas está encapsulada para aceitar um override por produto sem mudar o contrato do gráfico.
+
 ## Próxima evolução
 
-Persistência relacional sugerida: `projects`, `units`, `commercial_proposals`, `targets`, `unit_categories`, `scenarios`, `import_batches` e `project_media`. A implantação 2D pode ser adicionada com uma imagem por bloco e coordenadas por PEP; o compartilhamento já está encapsulado no fluxo do simulador.
+O projeto Supabase atual já possui `projects.config` em JSONB, que pode receber `appConfig` e `productVisualConfigs` quando a autenticação e o serviço remoto forem integrados. A imagem deve migrar do Data URL local para um bucket de Storage, mantendo somente a URL no JSONB. Até essa integração, o adaptador oficial permanece `src/store.js`, sem acesso direto do componente visual ao banco.
